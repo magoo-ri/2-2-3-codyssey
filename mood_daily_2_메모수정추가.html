@@ -1,0 +1,3283 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MOOD DAILY. — 매일 5분 미감 쌓기</title>
+  <!-- Tailwind CSS (오프라인 환경에서도 기본 레이아웃이 유지되도록 폴백 스타일 병행) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: 오프라인 시 시스템 서체로 우아하게 폴백 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            paper: '#F7F5F0',
+            surface: '#FFFFFF',
+            subtle: '#EFECE6',
+            ink: '#1F211E',
+            muted: '#666963',
+            sage: '#4A6352',
+            sageLight: '#E8EFEA',
+            terracotta: '#C46D53',
+            terracottaLight: '#F9ECE8',
+            borderWarm: '#E3DFD7'
+          },
+          fontFamily: {
+            sans: ['"Noto Sans KR"', '-apple-system', 'BlinkMacSystemFont', '"Apple SD Gothic Neo"', '"Malgun Gothic"', 'sans-serif'],
+            serif: ['"Cormorant Garamond"', 'Georgia', '"Times New Roman"', 'serif']
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    /* 기본 폴백 및 에디토리얼 커스텀 스타일 */
+    :root {
+      --bg-paper: #F7F5F0;
+      --bg-surface: #FFFFFF;
+      --bg-subtle: #EFECE6;
+      --text-ink: #1F211E;
+      --text-muted: #666963;
+      --accent-sage: #4A6352;
+      --accent-terra: #C46D53;
+      --border-warm: #E3DFD7;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      margin: 0;
+      background-color: var(--bg-paper);
+      color: var(--text-ink);
+      font-family: "Noto Sans KR", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+      line-height: 1.65;
+      word-break: keep-all;
+      overflow-x: hidden;
+    }
+
+    .font-editorial {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      letter-spacing: -0.01em;
+    }
+
+    /* 부드러운 화면 전환 애니메이션 */
+    .view-section {
+      animation: fadeSlideUp 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes fadeSlideUp {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* 커스텀 스크롤바 */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #F7F5F0;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #D4CFC5;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #B8B2A6;
+    }
+
+    /* 카드 호버 트랜지션 */
+    .studio-card {
+      background-color: #FFFFFF;
+      border: 1px solid #E3DFD7;
+      border-radius: 1.25rem;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+    .studio-card-hover:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px -10px rgba(31, 33, 30, 0.08);
+      border-color: #CFC9BD;
+    }
+
+    /* 컬러 스와치 인터랙션 */
+    .swatch-tile {
+      transition: flex 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s ease;
+    }
+    @media (min-width: 640px) {
+      .swatch-tile:hover {
+        flex: 1.35;
+      }
+    }
+
+    /* 체크리스트 애니메이션 */
+    .check-item input:checked + .check-box {
+      background-color: #4A6352;
+      border-color: #4A6352;
+      color: #FFFFFF;
+    }
+    .check-item input:checked ~ .check-label {
+      color: #666963;
+      text-decoration: line-through;
+    }
+
+    /* 안목 테스트 카드 선택 상태 */
+    .quiz-option-card {
+      transition: all 0.22s ease;
+    }
+    .quiz-option-card:hover {
+      border-color: #4A6352;
+      box-shadow: 0 10px 24px -8px rgba(74, 99, 82, 0.14);
+    }
+    .quiz-option-selected {
+      border-color: #4A6352 !important;
+      box-shadow: 0 0 0 3px rgba(74, 99, 82, 0.18) !important;
+    }
+
+    /* 토스트 메시지 */
+    #toast-container {
+      pointer-events: none;
+    }
+    .toast-msg {
+      pointer-events: auto;
+      animation: toastIn 0.25s ease forwards;
+    }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(12px) scale(0.96); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col pb-20 md:pb-0">
+
+  <!-- localStorage 미지원/오류 경고 배너 (기본 숨김) -->
+  <div id="storage-warning-banner" class="hidden bg-terracotta text-white text-xs sm:text-sm px-4 py-2.5 text-center font-medium">
+    ⚠️ 현재 브라우저 환경에서 로컬 저장소(localStorage) 접근이 제한되어 있습니다. 새로고침 시 기록이 유지되지 않을 수 있습니다.
+  </div>
+
+  <!-- 상단 헤더 내비게이션 -->
+  <header class="sticky top-0 z-30 bg-[#F7F5F0]/90 backdrop-blur-md border-b border-[#E3DFD7]">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <!-- 브랜드 로고 -->
+      <button onclick="switchTab('dashboard')" class="flex items-center gap-2.5 text-left group focus:outline-none">
+        <span class="w-8 h-8 rounded-full bg-sage text-white flex items-center justify-center text-sm font-semibold shadow-sm group-hover:scale-105 transition-transform">🌱</span>
+        <div>
+          <span class="font-editorial text-2xl font-bold tracking-tight text-ink block leading-none">MOOD DAILY.</span>
+          <span class="text-[10px] text-muted tracking-wider uppercase block mt-0.5">5-Min Aesthetic Habit</span>
+        </div>
+      </button>
+
+      <!-- 데스크톱 내비게이션 -->
+      <nav class="hidden md:flex items-center gap-1 bg-[#EFECE6] p-1 rounded-full border border-[#E3DFD7]" aria-label="주요 메뉴">
+        <button data-nav="dashboard" onclick="switchTab('dashboard')" class="nav-btn px-4 py-1.5 rounded-full text-sm font-medium transition-all">홈</button>
+        <button data-nav="mission" onclick="switchTab('mission')" class="nav-btn px-4 py-1.5 rounded-full text-sm font-medium transition-all">미감 미션</button>
+        <button data-nav="quiz" onclick="switchTab('quiz')" class="nav-btn px-4 py-1.5 rounded-full text-sm font-medium transition-all">안목 테스트</button>
+        <button data-nav="color" onclick="switchTab('color')" class="nav-btn px-4 py-1.5 rounded-full text-sm font-medium transition-all">컬러 연구소</button>
+        <button data-nav="archive" onclick="switchTab('archive')" class="nav-btn px-4 py-1.5 rounded-full text-sm font-medium transition-all">취향 아카이브</button>
+        <button data-nav="report" onclick="switchTab('report')" class="nav-btn px-4 py-1.5 rounded-full text-sm font-medium transition-all">주간 리포트</button>
+      </nav>
+
+      <!-- 우측 오늘 날짜 및 스트릭 뱃지 -->
+      <div class="flex items-center gap-2">
+        <span id="header-date-badge" class="hidden sm:inline-flex items-center px-3 py-1 rounded-full bg-white border border-[#E3DFD7] text-xs text-muted font-medium">
+          2026. 11. 13
+        </span>
+        <button onclick="switchTab('report')" title="연속 미션 수행 기록" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sageLight text-sage border border-sage/20 text-xs font-semibold hover:bg-sage hover:text-white transition-colors">
+          <span>🔥</span>
+          <span id="header-streak-count">0일 연속</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 메인 콘텐츠 컨테이너 -->
+  <main class="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-10">
+
+    <!-- =========================================================
+         VIEW 1: 메인 대시보드 (HOME)
+         ========================================================= -->
+    <section id="view-dashboard" class="view-section space-y-6 sm:space-y-8">
+      <!-- 상단 인사말 & 진행 요약 배너 -->
+      <div class="studio-card p-6 sm:p-8 bg-gradient-to-br from-white via-white to-[#F2EFE9] relative overflow-hidden">
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div class="space-y-2 max-w-xl">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-subtle text-xs font-medium text-muted">
+              <span id="dash-today-full">2026년 11월 13일 금요일</span>
+              <span>•</span>
+              <span id="dash-day-cycle">Day #1</span>
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-bold text-ink tracking-tight leading-snug pt-1">
+              오늘도 5분 동안<br class="sm:hidden" /> 나만의 감각을 쌓아볼까요?
+            </h1>
+            <p class="text-sm sm:text-base text-muted">
+              거창한 이론 대신 매일 하나의 작은 관찰로 디자인 안목과 취향의 기준을 단단하게 다집니다.
+            </p>
+          </div>
+
+          <!-- 오늘의 진행 상황 미니 위젯 -->
+          <div class="flex items-center gap-3 sm:gap-4 bg-[#F7F5F0] p-4 rounded-2xl border border-[#E3DFD7] shrink-0">
+            <div class="text-center px-2">
+              <div class="text-[11px] text-muted font-medium">오늘의 미션</div>
+              <div id="dash-today-status" class="mt-1 text-sm font-bold text-terracotta">진행 전</div>
+            </div>
+            <div class="w-px h-8 bg-[#E3DFD7]"></div>
+            <div class="text-center px-2">
+              <div class="text-[11px] text-muted font-medium">이번 주 수행</div>
+              <div id="dash-week-days" class="mt-1 text-sm font-bold text-ink">0 / 7일</div>
+            </div>
+            <div class="w-px h-8 bg-[#E3DFD7]"></div>
+            <div class="text-center px-2">
+              <div class="text-[11px] text-muted font-medium">저장한 취향</div>
+              <div id="dash-archive-count" class="mt-1 text-sm font-bold text-sage">0개</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 오늘의 미션 & 오늘의 컬러 2단 핵심 카드 -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- 오늘의 미션 요약 카드 (7컬럼) -->
+        <div class="lg:col-span-7 studio-card studio-card-hover p-6 sm:p-7 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between gap-2 mb-4">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="px-2.5 py-1 rounded-lg bg-sage text-white text-xs font-semibold">TODAY'S MISSION</span>
+                <span id="dash-mission-category" class="px-2.5 py-1 rounded-lg bg-subtle text-ink text-xs font-medium">컬러 감각</span>
+                <span id="dash-mission-level" class="px-2.5 py-1 rounded-lg bg-white border border-[#E3DFD7] text-muted text-xs">입문</span>
+              </div>
+              <span class="text-xs text-muted font-medium flex items-center gap-1">⏱ 5분</span>
+            </div>
+
+            <div class="text-xs font-editorial italic text-muted mb-1" id="dash-mission-num">MISSION #01</div>
+            <h2 id="dash-mission-title" class="text-xl sm:text-2xl font-bold text-ink mb-2.5">
+              미션 제목 로딩 중...
+            </h2>
+            <p id="dash-mission-desc" class="text-sm text-muted leading-relaxed mb-6">
+              미션 설명이 표시됩니다.
+            </p>
+          </div>
+
+          <div class="pt-4 border-t border-[#EFECE6] flex items-center justify-between gap-4">
+            <div id="dash-mission-check-badge" class="flex items-center gap-2 text-xs font-medium text-muted">
+              <span class="w-2.5 h-2.5 rounded-full bg-terracotta inline-block"></span>
+              <span>아직 완료하지 않았어요</span>
+            </div>
+            <button onclick="switchTab('mission')" class="px-5 py-2.5 rounded-xl bg-ink text-white text-sm font-medium hover:bg-sage transition-colors flex items-center gap-2 shadow-sm">
+              <span id="dash-mission-cta-text">미션 시작하기</span>
+              <span>→</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 오늘의 컬러 요약 카드 (5컬럼) -->
+        <div class="lg:col-span-5 studio-card studio-card-hover p-6 sm:p-7 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <span class="px-2.5 py-1 rounded-lg bg-terracottaLight text-terracotta text-xs font-semibold">TODAY'S PALETTE</span>
+              <span id="dash-palette-mood" class="text-xs text-muted font-medium">#차분한 #자연주의</span>
+            </div>
+
+            <!-- 미니 컬러 스트립 -->
+            <div id="dash-palette-swatches" class="h-24 rounded-2xl overflow-hidden flex shadow-inner border border-[#E3DFD7] mb-4">
+              <!-- JS로 렌더링 -->
+            </div>
+
+            <h3 id="dash-palette-name" class="text-lg font-bold text-ink mb-1">팔레트 이름</h3>
+            <p id="dash-palette-desc" class="text-xs sm:text-sm text-muted leading-relaxed mb-4">
+              팔레트 설명이 여기에 표시됩니다.
+            </p>
+          </div>
+
+          <div class="pt-4 border-t border-[#EFECE6] flex items-center justify-between">
+            <div id="dash-palette-hexes" class="flex items-center gap-1.5 text-[11px] font-mono text-muted">
+              <!-- HEX 요약 -->
+            </div>
+            <button onclick="switchTab('color')" class="text-sm font-semibold text-sage hover:text-ink transition-colors flex items-center gap-1">
+              <span>컬러 연구소</span>
+              <span>→</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 빠른 메뉴 그리드 -->
+      <div>
+        <div class="flex items-center justify-between mb-3 px-1">
+          <h3 class="text-sm font-bold text-ink tracking-wide">크리에이티브 훈련실 바로가기</h3>
+          <span class="text-xs text-muted">원하는 활동을 선택해 연습해보세요</span>
+        </div>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <button onclick="switchTab('mission')" class="studio-card studio-card-hover p-4 sm:p-5 text-left group">
+            <div class="w-10 h-10 rounded-xl bg-sageLight text-sage flex items-center justify-center text-lg mb-3 group-hover:scale-105 transition-transform">🎯</div>
+            <div class="font-bold text-sm sm:text-base text-ink">오늘의 미감 미션</div>
+            <p class="text-xs text-muted mt-1">30가지 실전 관찰 &amp; 훈련</p>
+          </button>
+
+          <button onclick="switchTab('quiz')" class="studio-card studio-card-hover p-4 sm:p-5 text-left group">
+            <div class="w-10 h-10 rounded-xl bg-terracottaLight text-terracotta flex items-center justify-center text-lg mb-3 group-hover:scale-105 transition-transform">👁️</div>
+            <div class="font-bold text-sm sm:text-base text-ink">디자인 안목 테스트</div>
+            <p class="text-xs text-muted mt-1">A vs B 시각 비교 퀴즈</p>
+          </button>
+
+          <button onclick="switchTab('color')" class="studio-card studio-card-hover p-4 sm:p-5 text-left group">
+            <div class="w-10 h-10 rounded-xl bg-[#EFECE6] text-ink flex items-center justify-center text-lg mb-3 group-hover:scale-105 transition-transform">🎨</div>
+            <div class="font-bold text-sm sm:text-base text-ink">오늘의 컬러 연구소</div>
+            <p class="text-xs text-muted mt-1">20종 배색 &amp; 팔레트 제작</p>
+          </button>
+
+          <button onclick="switchTab('archive')" class="studio-card studio-card-hover p-4 sm:p-5 text-left group">
+            <div class="w-10 h-10 rounded-xl bg-[#E8EEF2] text-[#3B596A] flex items-center justify-center text-lg mb-3 group-hover:scale-105 transition-transform">🗂️</div>
+            <div class="font-bold text-sm sm:text-base text-ink">나의 취향 아카이브</div>
+            <p class="text-xs text-muted mt-1">수집한 팔레트 · 메모 관리</p>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================
+         VIEW 2: 오늘의 미감 미션 (MISSION)
+         ========================================================= -->
+    <section id="view-mission" class="view-section hidden space-y-6">
+      <!-- 상단 타이틀 & 컨트롤 바 -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <span class="text-xs font-semibold text-sage uppercase tracking-wider">Daily Aesthetic Training</span>
+          <h2 class="text-2xl font-bold text-ink mt-0.5">오늘의 미감 미션</h2>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- 난이도 필터 -->
+          <select id="mission-level-filter" onchange="handleMissionFilterChange()" aria-label="미션 난이도 선택" class="px-3 py-2 rounded-xl bg-white border border-[#E3DFD7] text-xs sm:text-sm font-medium text-ink focus:outline-none focus:border-sage">
+            <option value="ALL">모든 난이도 (30개)</option>
+            <option value="입문">입문 난이도</option>
+            <option value="기본">기본 난이도</option>
+            <option value="심화">심화 난이도</option>
+          </select>
+
+          <!-- 랜덤 미션 뽑기 -->
+          <button onclick="pickRandomMission()" class="px-3.5 py-2 rounded-xl bg-white border border-[#E3DFD7] hover:border-sage text-xs sm:text-sm font-medium text-ink transition-colors flex items-center gap-1.5">
+            <span>🎲</span>
+            <span>다른 미션 뽑기</span>
+          </button>
+
+          <!-- 오늘의 미션으로 복귀 -->
+          <button id="btn-reset-today-mission" onclick="resetToTodayMission()" class="hidden px-3.5 py-2 rounded-xl bg-sageLight text-sage text-xs sm:text-sm font-semibold hover:bg-sage hover:text-white transition-colors">
+            오늘 미션으로 돌아가기
+          </button>
+        </div>
+      </div>
+
+      <!-- 메인 미션 카드 -->
+      <div class="studio-card p-6 sm:p-8 space-y-6">
+        <!-- 메타 태그 -->
+        <div class="flex flex-wrap items-center justify-between gap-2 pb-4 border-b border-[#EFECE6]">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span id="mission-badge-mode" class="px-3 py-1 rounded-full bg-sage text-white text-xs font-semibold">오늘의 지정 미션</span>
+            <span id="mission-badge-num" class="px-3 py-1 rounded-full bg-subtle text-ink text-xs font-mono font-semibold">#01</span>
+            <span id="mission-badge-cat" class="px-3 py-1 rounded-full bg-terracottaLight text-terracotta text-xs font-semibold">컬러 감각</span>
+            <span id="mission-badge-level" class="px-3 py-1 rounded-full bg-white border border-[#E3DFD7] text-muted text-xs font-medium">입문</span>
+          </div>
+          <div class="text-xs sm:text-sm text-muted font-medium">⏱ 예상 소요 시간: <strong class="text-ink" id="mission-duration">5분</strong></div>
+        </div>
+
+        <!-- 제목 & 소개 -->
+        <div>
+          <h3 id="mission-title" class="text-xl sm:text-2xl font-bold text-ink leading-snug mb-3">
+            미션 제목
+          </h3>
+          <p id="mission-intro" class="text-sm sm:text-base text-muted leading-relaxed">
+            미션 안내 문구
+          </p>
+        </div>
+
+        <!-- 단계별 행동 & 관찰 포인트 체크리스트 -->
+        <div class="bg-[#F7F5F0] rounded-2xl p-5 sm:p-6 border border-[#E3DFD7] space-y-4">
+          <div class="flex items-center justify-between">
+            <h4 class="font-bold text-sm sm:text-base text-ink flex items-center gap-2">
+              <span>📋</span>
+              <span>5분 관찰 &amp; 실천 체크리스트</span>
+            </h4>
+            <span class="text-xs text-muted">항목을 클릭해 하나씩 점검해보세요</span>
+          </div>
+          <div id="mission-steps-list" class="space-y-3">
+            <!-- JS로 단계별 체크박스 렌더링 -->
+          </div>
+        </div>
+
+        <!-- 관찰 팁 / 핵심 포인트 박스 -->
+        <div class="rounded-2xl bg-sageLight/60 border border-sage/20 p-4 sm:p-5 flex items-start gap-3">
+          <span class="text-lg mt-0.5">💡</span>
+          <div>
+            <div class="text-xs font-bold text-sage uppercase tracking-wider mb-1">핵심 관찰 포인트</div>
+            <p id="mission-focus-point" class="text-sm text-ink leading-relaxed"></p>
+          </div>
+        </div>
+
+        <!-- 미션 완료 체크 버튼 영역 -->
+        <div class="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+          <button id="btn-complete-mission" onclick="toggleMissionComplete()" class="px-6 py-3.5 rounded-2xl bg-sage text-white font-bold text-sm sm:text-base hover:opacity-95 transition-all shadow-sm flex items-center justify-center gap-2.5">
+            <span id="complete-btn-icon">✓</span>
+            <span id="complete-btn-text">오늘의 미션 완료 체크하기</span>
+          </button>
+
+          <button onclick="saveMissionToArchive()" class="px-4 py-3 rounded-2xl bg-white border border-[#E3DFD7] hover:border-ink text-sm font-medium text-ink transition-colors flex items-center justify-center gap-1.5">
+            <span>🔖</span>
+            <span>미션 내용 아카이브에 보관</span>
+          </button>
+        </div>
+
+        <!-- 완료 후 열리는 해설 및 생각해 볼 질문 (완료 시 자동 표시, 미리보기 토글 가능) -->
+        <div id="mission-insight-box" class="hidden pt-6 border-t border-[#E3DFD7] space-y-5">
+          <div class="rounded-2xl bg-white border-2 border-sage/30 p-5 sm:p-6 space-y-4">
+            <div class="flex items-center gap-2 text-sage font-bold text-sm">
+              <span>✨</span>
+              <span>미션 완료! 디자인 인사이트 &amp; 생각해 볼 질문</span>
+            </div>
+            <div>
+              <h5 class="text-xs font-bold text-muted uppercase mb-1">디자인 해설</h5>
+              <p id="mission-explanation" class="text-sm sm:text-base text-ink leading-relaxed"></p>
+            </div>
+            <div class="p-4 rounded-xl bg-[#F7F5F0] border border-[#E3DFD7]">
+              <h5 class="text-xs font-bold text-terracotta uppercase mb-1">스스로에게 던져볼 질문</h5>
+              <p id="mission-question" class="text-sm font-medium text-ink"></p>
+            </div>
+
+            <!-- 짧은 감상 메모 남기기 -->
+            <div class="pt-2">
+              <label for="mission-reflection-input" class="block text-xs font-bold text-ink mb-2">
+                ✍️ 오늘 발견한 나만의 디자인 원칙 또는 감상 메모 (아카이브에 자동 저장됩니다)
+              </label>
+              <div class="flex flex-col sm:flex-row gap-2">
+                <input id="mission-reflection-input" type="text" placeholder="예: 여백을 20%만 넓혀도 제목의 주목도가 훨씬 높아진다는 것을 느꼈다." class="flex-1 px-4 py-2.5 rounded-xl bg-[#F7F5F0] border border-[#E3DFD7] text-sm focus:outline-none focus:border-sage" />
+                <button onclick="saveMissionReflection()" class="px-4 py-2.5 rounded-xl bg-ink text-white text-sm font-medium hover:bg-sage transition-colors shrink-0">
+                  메모 저장
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 전체 미션 목록 아코디언 (탐색용) -->
+      <div class="studio-card p-5 sm:p-6">
+        <div class="flex items-center justify-between cursor-pointer" onclick="toggleAllMissionsDrawer()">
+          <div>
+            <h4 class="font-bold text-sm sm:text-base text-ink">전체 30개 미감 미션 라이브러리 둘러보기</h4>
+            <p class="text-xs text-muted mt-0.5">컬러 · 폰트 · 레이아웃 · 이미지 · 디자인 분석 · 창작 연습</p>
+          </div>
+          <span id="drawer-arrow" class="text-sm font-bold text-muted px-3 py-1 rounded-lg bg-subtle">펼치기 ▼</span>
+        </div>
+        <div id="all-missions-list" class="hidden mt-5 pt-5 border-t border-[#EFECE6] grid grid-cols-1 md:grid-cols-2 gap-3">
+          <!-- JS로 30개 미션 목록 생성 -->
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================
+         VIEW 3: 디자인 안목 테스트 (QUIZ)
+         ========================================================= -->
+    <section id="view-quiz" class="view-section hidden space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <span class="text-xs font-semibold text-terracotta uppercase tracking-wider">Visual Eye Comparison</span>
+          <h2 class="text-2xl font-bold text-ink mt-0.5">디자인 안목 테스트</h2>
+          <p class="text-xs sm:text-sm text-muted mt-1">두 가지 시각 예시를 비교하고 목적에 더 부합하는 구성을 골라보세요.</p>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <select id="quiz-category-filter" onchange="filterQuizzes()" aria-label="테스트 분야 필터" class="px-3 py-2 rounded-xl bg-white border border-[#E3DFD7] text-xs sm:text-sm font-medium text-ink focus:outline-none focus:border-sage">
+            <option value="ALL">전체 분야 (16문항)</option>
+            <option value="컬러">컬러 배색</option>
+            <option value="폰트">폰트 · 타이포그래피</option>
+            <option value="레이아웃">레이아웃 · 여백</option>
+            <option value="이미지">이미지 · 구도</option>
+            <option value="디자인 분석">디자인 분석 · UI</option>
+          </select>
+          <span id="quiz-progress-badge" class="px-3 py-2 rounded-xl bg-subtle text-xs sm:text-sm font-bold text-ink">
+            1 / 16
+          </span>
+        </div>
+      </div>
+
+      <!-- 퀴즈 메인 카드 -->
+      <div class="studio-card p-6 sm:p-8 space-y-6">
+        <div class="flex items-center justify-between gap-2">
+          <span id="quiz-cat-tag" class="px-3 py-1 rounded-full bg-terracottaLight text-terracotta text-xs font-semibold">컬러</span>
+          <span id="quiz-principle-tag" class="text-xs text-muted font-medium">관찰 키워드: 명도 대비와 안정감</span>
+        </div>
+
+        <h3 id="quiz-question" class="text-lg sm:text-2xl font-bold text-ink leading-snug">
+          질문이 여기에 표시됩니다.
+        </h3>
+
+        <!-- A안 vs B안 시각 비교 컨테이너 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
+          <!-- Option A -->
+          <div id="quiz-card-A" onclick="selectQuizOption('A')" role="button" tabindex="0" class="quiz-option-card cursor-pointer rounded-2xl border-2 border-[#E3DFD7] bg-[#FAF9F6] p-4 sm:p-5 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <span class="px-2.5 py-0.5 rounded-md bg-ink text-white text-xs font-bold">OPTION A</span>
+                <span id="quiz-label-A" class="text-xs font-medium text-muted">예시 A</span>
+              </div>
+              <!-- 시각적 그래픽/UI 렌더링 영역 -->
+              <div id="quiz-visual-A" class="w-full min-h-[190px] rounded-xl overflow-hidden border border-[#E3DFD7] bg-white flex items-center justify-center p-4">
+                <!-- SVG/HTML 디자인 목업 삽입 -->
+              </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-[#EAE6DF] flex items-center justify-between">
+              <span id="quiz-caption-A" class="text-xs text-muted">A안 선택하기</span>
+              <span class="text-xs font-bold text-sage">선택 →</span>
+            </div>
+          </div>
+
+          <!-- Option B -->
+          <div id="quiz-card-B" onclick="selectQuizOption('B')" role="button" tabindex="0" class="quiz-option-card cursor-pointer rounded-2xl border-2 border-[#E3DFD7] bg-[#FAF9F6] p-4 sm:p-5 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <span class="px-2.5 py-0.5 rounded-md bg-ink text-white text-xs font-bold">OPTION B</span>
+                <span id="quiz-label-B" class="text-xs font-medium text-muted">예시 B</span>
+              </div>
+              <!-- 시각적 그래픽/UI 렌더링 영역 -->
+              <div id="quiz-visual-B" class="w-full min-h-[190px] rounded-xl overflow-hidden border border-[#E3DFD7] bg-white flex items-center justify-center p-4">
+                <!-- SVG/HTML 디자인 목업 삽입 -->
+              </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-[#EAE6DF] flex items-center justify-between">
+              <span id="quiz-caption-B" class="text-xs text-muted">B안 선택하기</span>
+              <span class="text-xs font-bold text-sage">선택 →</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 선택 직후 표시되는 해설 패널 -->
+        <div id="quiz-explanation-panel" class="hidden rounded-2xl bg-[#F7F5F0] border border-sage/30 p-5 sm:p-6 space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span id="quiz-result-badge" class="px-3 py-1 rounded-full bg-sage text-white text-xs font-bold">선택 완료</span>
+              <span id="quiz-recommended-note" class="text-xs sm:text-sm font-bold text-ink">권장 관점: B안</span>
+            </div>
+            <button onclick="saveQuizToArchive()" class="px-3 py-1.5 rounded-xl bg-white border border-[#E3DFD7] hover:border-sage text-xs font-semibold text-ink transition-colors">
+              🔖 이 인사이트 아카이브에 저장
+            </button>
+          </div>
+
+          <p id="quiz-explanation-text" class="text-sm sm:text-base text-ink leading-relaxed">
+            해설 텍스트가 표시됩니다.
+          </p>
+
+          <div class="p-3.5 rounded-xl bg-white border border-[#E3DFD7] text-xs sm:text-sm text-muted">
+            <strong class="text-sage">📐 기억할 디자인 원칙:</strong> <span id="quiz-principle-detail"></span>
+          </div>
+        </div>
+
+        <!-- 이전 / 다음 / 다시 풀기 내비게이션 -->
+        <div class="pt-4 border-t border-[#EFECE6] flex items-center justify-between gap-3">
+          <button onclick="prevQuiz()" class="px-4 py-2.5 rounded-xl bg-white border border-[#E3DFD7] hover:border-ink text-sm font-medium text-ink transition-colors">
+            ← 이전 문제
+          </button>
+          <button onclick="resetCurrentQuiz()" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm text-muted hover:text-ink font-medium">
+            다시 선택하기
+          </button>
+          <button onclick="nextQuiz()" class="px-5 py-2.5 rounded-xl bg-ink text-white hover:bg-sage text-sm font-medium transition-colors">
+            다음 문제 →
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================
+         VIEW 4: 오늘의 컬러 연구소 (COLOR LAB)
+         ========================================================= -->
+    <section id="view-color" class="view-section hidden space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <span class="text-xs font-semibold text-sage uppercase tracking-wider">Curated Color Studio</span>
+          <h2 class="text-2xl font-bold text-ink mt-0.5">오늘의 컬러 연구소</h2>
+          <p class="text-xs sm:text-sm text-muted mt-1">색상 타일을 클릭하면 HEX 코드가 클립보드에 즉시 복사됩니다.</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- 팔레트 선택 드롭다운 (22종 큐레이션) -->
+          <select id="palette-selector" onchange="selectPaletteByIndex(this.value)" aria-label="큐레이션 팔레트 선택" class="px-3 py-2 rounded-xl bg-white border border-[#E3DFD7] text-xs sm:text-sm font-medium text-ink focus:outline-none focus:border-sage max-w-[220px]">
+            <!-- JS로 22개 팔레트 옵션 렌더링 -->
+          </select>
+
+          <button onclick="toggleCustomPaletteBuilder()" class="px-3.5 py-2 rounded-xl bg-ink text-white hover:bg-sage text-xs sm:text-sm font-medium transition-colors flex items-center gap-1.5">
+            <span>+</span>
+            <span>나만의 배색 만들기</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 나만의 컬러 조합 만들기 빌더 (토글) -->
+      <div id="custom-palette-builder" class="hidden studio-card p-6 border-2 border-sage/40 bg-[#FAF9F6] space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="font-bold text-base sm:text-lg text-ink">🎨 나만의 커스텀 컬러 조합 만들기</h3>
+          <button onclick="toggleCustomPaletteBuilder()" class="text-xs text-muted hover:text-ink">닫기 ✕</button>
+        </div>
+        <p class="text-xs sm:text-sm text-muted">배경(메인), 보조, 강조, 포인트 4가지 색상을 직접 조합해 아카이브에 보관해보세요.</p>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="bg-white p-3 rounded-xl border border-[#E3DFD7]">
+            <label class="block text-xs font-bold text-ink mb-1.5">1. 메인 배경색</label>
+            <input type="color" id="custom-c1" value="#F4EFE6" oninput="updateCustomPreview()" class="w-full h-12 rounded-lg cursor-pointer border-0" />
+            <div id="custom-hex1" class="mt-1.5 text-xs font-mono text-muted text-center">#F4EFE6</div>
+          </div>
+          <div class="bg-white p-3 rounded-xl border border-[#E3DFD7]">
+            <label class="block text-xs font-bold text-ink mb-1.5">2. 보조 톤</label>
+            <input type="color" id="custom-c2" value="#D8CBB8" oninput="updateCustomPreview()" class="w-full h-12 rounded-lg cursor-pointer border-0" />
+            <div id="custom-hex2" class="mt-1.5 text-xs font-mono text-muted text-center">#D8CBB8</div>
+          </div>
+          <div class="bg-white p-3 rounded-xl border border-[#E3DFD7]">
+            <label class="block text-xs font-bold text-ink mb-1.5">3. 주조 텍스트/키컬러</label>
+            <input type="color" id="custom-c3" value="#2E4035" oninput="updateCustomPreview()" class="w-full h-12 rounded-lg cursor-pointer border-0" />
+            <div id="custom-hex3" class="mt-1.5 text-xs font-mono text-muted text-center">#2E4035</div>
+          </div>
+          <div class="bg-white p-3 rounded-xl border border-[#E3DFD7]">
+            <label class="block text-xs font-bold text-ink mb-1.5">4. 포인트 강조색</label>
+            <input type="color" id="custom-c4" value="#D47459" oninput="updateCustomPreview()" class="w-full h-12 rounded-lg cursor-pointer border-0" />
+            <div id="custom-hex4" class="mt-1.5 text-xs font-mono text-muted text-center">#D47459</div>
+          </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-3 pt-2">
+          <input type="text" id="custom-palette-name" placeholder="팔레트 이름 입력 (예: 가을 오후의 서재)" class="flex-1 px-4 py-2.5 rounded-xl bg-white border border-[#E3DFD7] text-sm focus:outline-none focus:border-sage" />
+          <input type="text" id="custom-palette-note" placeholder="분위기 메모 (예: 따뜻하고 지적인 블로그 테마용)" class="flex-1 px-4 py-2.5 rounded-xl bg-white border border-[#E3DFD7] text-sm focus:outline-none focus:border-sage" />
+          <button onclick="saveCustomPalette()" class="px-5 py-2.5 rounded-xl bg-sage text-white text-sm font-bold hover:opacity-95 shrink-0">
+            아카이브에 저장
+          </button>
+        </div>
+      </div>
+
+      <!-- 메인 컬러 연구소 카드 -->
+      <div class="studio-card p-6 sm:p-8 space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div class="flex items-center gap-2 flex-wrap mb-1.5">
+              <span id="color-lab-badge" class="px-2.5 py-0.5 rounded-full bg-terracottaLight text-terracotta text-xs font-semibold">TODAY'S PICK</span>
+              <div id="color-lab-tags" class="flex items-center gap-1.5 flex-wrap text-xs text-muted font-medium">
+                <!-- 분위기 키워드 -->
+              </div>
+            </div>
+            <h3 id="color-lab-title" class="text-xl sm:text-2xl font-bold text-ink">팔레트 이름</h3>
+          </div>
+
+          <button onclick="saveCurrentPaletteToArchive()" class="px-4 py-2.5 rounded-xl bg-sage text-white text-sm font-semibold hover:opacity-95 transition-all flex items-center justify-center gap-2 shadow-sm shrink-0">
+            <span>🔖</span>
+            <span>이 팔레트 아카이브에 저장</span>
+          </button>
+        </div>
+
+        <!-- 대형 인터랙티브 컬러 스와치 -->
+        <div id="color-lab-swatches" class="h-52 sm:h-64 rounded-2xl overflow-hidden flex flex-col sm:flex-row border border-[#E3DFD7] shadow-sm">
+          <!-- JS로 4~5개 색상 타일 렌더링 -->
+        </div>
+
+        <!-- 색상별 역할 분석 & 활용 가이드 -->
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-6 pt-2">
+          <div class="md:col-span-7 space-y-3">
+            <h4 class="text-sm font-bold text-ink">🎨 컬러별 역할 및 배색 비율 가이드</h4>
+            <div id="color-lab-roles" class="space-y-2.5">
+              <!-- JS로 각 색상의 역할 설명 렌더링 -->
+            </div>
+          </div>
+
+          <div class="md:col-span-5 bg-[#F7F5F0] rounded-2xl p-5 border border-[#E3DFD7] flex flex-col justify-between space-y-4">
+            <div>
+              <h4 class="text-sm font-bold text-ink mb-2">💡 실무 활용 아이디어</h4>
+              <p id="color-lab-usage" class="text-sm text-muted leading-relaxed">
+                활용 아이디어 설명
+              </p>
+            </div>
+            <!-- 실시간 미니 UI 배색 적용 미리보기 -->
+            <div id="color-lab-live-preview" class="rounded-xl p-4 border transition-colors">
+              <div class="text-[10px] uppercase tracking-wider font-bold opacity-75 mb-1">LIVE UI PREVIEW</div>
+              <div class="font-bold text-base mb-1">감각적인 타이포그래피와 색의 균형</div>
+              <p class="text-xs opacity-85 mb-3">배경색과 텍스트의 명도 대비를 확인해보세요.</p>
+              <span id="color-lab-preview-btn" class="inline-block px-3 py-1 rounded-lg text-xs font-bold">강조 버튼 예시</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================
+         VIEW 5: 나의 취향 아카이브 (ARCHIVE)
+         ========================================================= -->
+    <section id="view-archive" class="view-section hidden space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <span class="text-xs font-semibold text-sage uppercase tracking-wider">Personal Taste Collection</span>
+          <h2 class="text-2xl font-bold text-ink mt-0.5">나의 취향 아카이브</h2>
+          <p class="text-xs sm:text-sm text-muted mt-1">수집한 컬러 팔레트, 인상 깊은 디자인 인사이트, 나만의 메모가 브라우저에 안전하게 보관됩니다.</p>
+        </div>
+
+        <!-- 내보내기 / 복사 액션 -->
+        <div class="flex flex-wrap items-center gap-2">
+          <button onclick="copyArchiveAsText()" class="px-3.5 py-2 rounded-xl bg-white border border-[#E3DFD7] hover:border-ink text-xs sm:text-sm font-medium text-ink transition-colors">
+            📋 텍스트 복사
+          </button>
+          <button onclick="exportArchiveFile('txt')" class="px-3.5 py-2 rounded-xl bg-white border border-[#E3DFD7] hover:border-ink text-xs sm:text-sm font-medium text-ink transition-colors">
+            ⬇️ TXT 내보내기
+          </button>
+          <button onclick="exportArchiveFile('json')" class="px-3.5 py-2 rounded-xl bg-ink text-white hover:bg-sage text-xs sm:text-sm font-medium transition-colors">
+            ⬇️ JSON 백업
+          </button>
+        </div>
+      </div>
+
+      <!-- 빠른 메모 / 디자인 팁 기록 폼 -->
+      <div class="studio-card p-5 sm:p-6 bg-[#FAF9F6]">
+        <h3 class="text-sm font-bold text-ink mb-3">✍️ 기억하고 싶은 디자인 팁이나 일상 관찰 메모 추가</h3>
+        <div class="flex flex-col sm:flex-row gap-2.5">
+          <select id="new-memo-type" aria-label="기록 유형" class="px-3 py-2.5 rounded-xl bg-white border border-[#E3DFD7] text-xs sm:text-sm font-medium text-ink">
+            <option value="나의 메모">나의 메모</option>
+            <option value="디자인 팁">디자인 팁</option>
+          </select>
+          <input id="new-memo-title" type="text" placeholder="제목 (예: 카페 메뉴판에서 발견한 여백의 힘)" class="sm:w-1/3 px-3.5 py-2.5 rounded-xl bg-white border border-[#E3DFD7] text-sm focus:outline-none focus:border-sage" />
+          <input id="new-memo-content" type="text" placeholder="내용을 자유롭게 적어보세요..." class="flex-1 px-3.5 py-2.5 rounded-xl bg-white border border-[#E3DFD7] text-sm focus:outline-none focus:border-sage" />
+          <button onclick="addCustomMemo()" class="px-5 py-2.5 rounded-xl bg-sage text-white text-sm font-semibold hover:opacity-95 shrink-0">
+            기록 추가
+          </button>
+        </div>
+      </div>
+
+      <!-- 카테고리 필터 & 검색 -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1">
+          <button onclick="setArchiveFilter('ALL')" data-arch-filter="ALL" class="arch-filter-btn px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-semibold bg-ink text-white">전체</button>
+          <button onclick="setArchiveFilter('컬러 팔레트')" data-arch-filter="컬러 팔레트" class="arch-filter-btn px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-medium bg-white border border-[#E3DFD7] text-muted">컬러 팔레트</button>
+          <button onclick="setArchiveFilter('안목 테스트')" data-arch-filter="안목 테스트" class="arch-filter-btn px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-medium bg-white border border-[#E3DFD7] text-muted">안목 테스트</button>
+          <button onclick="setArchiveFilter('미감 미션')" data-arch-filter="미감 미션" class="arch-filter-btn px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-medium bg-white border border-[#E3DFD7] text-muted">미감 미션</button>
+          <button onclick="setArchiveFilter('나의 메모')" data-arch-filter="나의 메모" class="arch-filter-btn px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-medium bg-white border border-[#E3DFD7] text-muted">메모 · 팁</button>
+        </div>
+
+        <input id="archive-search-input" type="search" oninput="renderArchive()" placeholder="아카이브 검색..." class="px-3.5 py-2 rounded-xl bg-white border border-[#E3DFD7] text-xs sm:text-sm focus:outline-none focus:border-sage sm:w-56" />
+      </div>
+
+      <!-- 아카이브 아이템 그리드 -->
+      <div id="archive-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- JS로 아카이브 카드 렌더링 -->
+      </div>
+
+      <!-- 아카이브 빈 상태 안내 -->
+      <div id="archive-empty-state" class="hidden studio-card p-12 text-center space-y-3">
+        <div class="text-4xl">🌿</div>
+        <h4 class="text-base sm:text-lg font-bold text-ink">아직 저장된 취향 기록이 없습니다</h4>
+        <p class="text-xs sm:text-sm text-muted max-w-md mx-auto">
+          오늘의 컬러 연구소에서 마음에 드는 배색을 저장하거나, 미감 미션 완료 후 발견한 인사이트를 차곡차곡 모아보세요.
+        </p>
+        <div class="pt-2 flex justify-center gap-2">
+          <button onclick="switchTab('color')" class="px-4 py-2 rounded-xl bg-sage text-white text-xs sm:text-sm font-medium">컬러 연구소 가기</button>
+          <button onclick="switchTab('mission')" class="px-4 py-2 rounded-xl bg-white border border-[#E3DFD7] text-xs sm:text-sm font-medium text-ink">미션 하러 가기</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================
+         VIEW 6: 주간 미감 리포트 (REPORT)
+         ========================================================= -->
+    <section id="view-report" class="view-section hidden space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <span class="text-xs font-semibold text-terracotta uppercase tracking-wider">Weekly Creative Log</span>
+          <h2 class="text-2xl font-bold text-ink mt-0.5">주간 미감 리포트</h2>
+          <p class="text-xs sm:text-sm text-muted mt-1">실제 완료한 미션과 저장한 기록을 바탕으로 한 주간의 연습 흐름을 확인합니다.</p>
+        </div>
+
+        <!-- 검증 및 기록 관리 버튼 -->
+        <div class="flex items-center gap-2">
+          <button id="btn-toggle-sample" onclick="toggleDemoData()" class="px-3 py-2 rounded-xl bg-white border border-[#E3DFD7] hover:border-sage text-xs font-medium text-muted hover:text-ink transition-colors">
+            샘플 기록 채우기
+          </button>
+          <button onclick="openResetModal()" class="px-3 py-2 rounded-xl bg-white border border-terracotta/30 hover:bg-terracottaLight text-xs font-medium text-terracotta transition-colors">
+            기록 초기화
+          </button>
+        </div>
+      </div>
+
+      <!-- 핵심 지표 4개 카드 -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div class="studio-card p-5">
+          <div class="text-xs text-muted font-medium">이번 주 미션 완료 일수</div>
+          <div class="mt-2 flex items-baseline gap-1.5">
+            <span id="rep-week-days" class="text-2xl sm:text-3xl font-bold text-sage">0</span>
+            <span class="text-sm text-muted">/ 7일</span>
+          </div>
+          <div class="mt-1 text-[11px] text-muted">월요일 ~ 일요일 기준</div>
+        </div>
+
+        <div class="studio-card p-5">
+          <div class="text-xs text-muted font-medium">연속 수행 기록 (Streak)</div>
+          <div class="mt-2 flex items-baseline gap-1.5">
+            <span id="rep-streak" class="text-2xl sm:text-3xl font-bold text-terracotta">0</span>
+            <span class="text-sm text-muted">일 연속</span>
+          </div>
+          <div class="mt-1 text-[11px] text-muted">매일 5분 습관 형성</div>
+        </div>
+
+        <div class="studio-card p-5">
+          <div class="text-xs text-muted font-medium">누적 완료 미션</div>
+          <div class="mt-2 flex items-baseline gap-1.5">
+            <span id="rep-total-missions" class="text-2xl sm:text-3xl font-bold text-ink">0</span>
+            <span class="text-sm text-muted">개</span>
+          </div>
+          <div id="rep-week-missions-sub" class="mt-1 text-[11px] text-muted">이번 주 완료 0개</div>
+        </div>
+
+        <div class="studio-card p-5">
+          <div class="text-xs text-muted font-medium">이번 주 아카이브 저장</div>
+          <div class="mt-2 flex items-baseline gap-1.5">
+            <span id="rep-week-saved" class="text-2xl sm:text-3xl font-bold text-ink">0</span>
+            <span class="text-sm text-muted">건</span>
+          </div>
+          <div id="rep-total-saved-sub" class="mt-1 text-[11px] text-muted">전체 보관함 0건</div>
+        </div>
+      </div>
+
+      <!-- 이번 주 7일 출석 스트립 & 분야별 연습 분포 -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- 7일 출석 현황 (5컬럼) -->
+        <div class="lg:col-span-5 studio-card p-6 flex flex-col justify-between space-y-5">
+          <div>
+            <h3 class="font-bold text-base text-ink">이번 주 5분 미감 캘린더</h3>
+            <p class="text-xs text-muted mt-0.5">미션을 완료한 요일에 초록빛 스탬프가 찍힙니다.</p>
+          </div>
+
+          <div id="rep-week-calendar" class="grid grid-cols-7 gap-2 text-center py-2">
+            <!-- JS로 월~일 7일 렌더링 -->
+          </div>
+
+          <!-- 규칙 기반 다음 주 추천 연습 분야 안내 -->
+          <div class="rounded-2xl bg-sageLight/70 border border-sage/20 p-4 space-y-1.5">
+            <div class="text-xs font-bold text-sage flex items-center gap-1.5">
+              <span>🧭</span>
+              <span>다음 연습 분야 제안</span>
+            </div>
+            <p id="rep-recommendation-text" class="text-xs sm:text-sm text-ink leading-relaxed">
+              기록을 분석해 다음 연습 분야를 제안해 드립니다.
+            </p>
+          </div>
+        </div>
+
+        <!-- 분야별 수행 횟수 막대 그래프 (7컬럼) -->
+        <div class="lg:col-span-7 studio-card p-6 space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="font-bold text-base text-ink">6대 미감 분야별 연습 분포</h3>
+              <p class="text-xs text-muted mt-0.5">균형 잡힌 시각 감각을 위해 다양한 분야를 경험해보세요.</p>
+            </div>
+            <span class="text-xs font-medium text-muted">단위: 완료 횟수</span>
+          </div>
+
+          <div id="rep-category-bars" class="space-y-3.5 pt-2">
+            <!-- JS로 6개 분야 진행 바 렌더링 -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 푸터: 리소스 및 서비스 안내 (기획서 3-4, 7장 반영) -->
+  <footer class="border-t border-[#E3DFD7] bg-[#EFECE6]/60 mt-12">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 py-8 text-xs text-muted space-y-2">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <span class="font-editorial text-base font-bold text-ink">MOOD DAILY. — 매일 5분 미감 쌓기</span>
+        <span>100% 브라우저 로컬 동작 · 로그인/서버 불필요</span>
+      </div>
+      <p class="leading-relaxed">
+        • 본 서비스는 AI 자동 생성이 아닌, 사전에 큐레이션된 미션·시각 비교 예시·컬러 데이터를 통해 스스로 관찰하고 판단하는 훈련 도구입니다.<br />
+        • 모든 활동 기록은 현재 기기의 브라우저 <code class="px-1 py-0.5 rounded bg-white border border-[#E3DFD7]">localStorage</code>에만 저장되며, 브라우저 캐시 삭제 시 초기화될 수 있습니다. (아카이브에서 백업 가능)<br />
+        • 외부 웹폰트(Google Fonts: Noto Sans KR, Cormorant Garamond) 및 Tailwind CSS CDN은 오프라인 환경에서도 시스템 기본 글꼴과 내장 스타일로 핵심 기능이 정상 작동하도록 설계되었습니다.
+      </p>
+    </div>
+  </footer>
+
+  <!-- 모바일 하단 탭 바 -->
+  <nav class="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur-md border-t border-[#E3DFD7] flex items-center justify-around py-1.5 px-1" aria-label="모바일 하단 메뉴">
+    <button data-nav="dashboard" onclick="switchTab('dashboard')" class="mob-nav-btn flex flex-col items-center py-1 px-2 rounded-lg text-[10px] font-medium">
+      <span class="text-base mb-0.5">🏠</span>
+      <span>홈</span>
+    </button>
+    <button data-nav="mission" onclick="switchTab('mission')" class="mob-nav-btn flex flex-col items-center py-1 px-2 rounded-lg text-[10px] font-medium">
+      <span class="text-base mb-0.5">🎯</span>
+      <span>미션</span>
+    </button>
+    <button data-nav="quiz" onclick="switchTab('quiz')" class="mob-nav-btn flex flex-col items-center py-1 px-2 rounded-lg text-[10px] font-medium">
+      <span class="text-base mb-0.5">👁️</span>
+      <span>안목</span>
+    </button>
+    <button data-nav="color" onclick="switchTab('color')" class="mob-nav-btn flex flex-col items-center py-1 px-2 rounded-lg text-[10px] font-medium">
+      <span class="text-base mb-0.5">🎨</span>
+      <span>컬러</span>
+    </button>
+    <button data-nav="archive" onclick="switchTab('archive')" class="mob-nav-btn flex flex-col items-center py-1 px-2 rounded-lg text-[10px] font-medium">
+      <span class="text-base mb-0.5">🗂️</span>
+      <span>보관함</span>
+    </button>
+    <button data-nav="report" onclick="switchTab('report')" class="mob-nav-btn flex flex-col items-center py-1 px-2 rounded-lg text-[10px] font-medium">
+      <span class="text-base mb-0.5">📊</span>
+      <span>리포트</span>
+    </button>
+  </nav>
+
+  <!-- 커스텀 확인 모달 (alert/confirm 대체) -->
+  <div id="confirm-modal" class="hidden fixed inset-0 z-50 bg-ink/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 border border-[#E3DFD7] shadow-xl space-y-4">
+      <h3 id="modal-title" class="text-lg font-bold text-ink">활동 기록 초기화</h3>
+      <p id="modal-desc" class="text-sm text-muted leading-relaxed">
+        저장된 미션 완료 기록과 아카이브 항목이 모두 삭제됩니다. 계속하시겠습니까?
+      </p>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeResetModal()" class="px-4 py-2 rounded-xl bg-subtle text-ink text-sm font-medium hover:bg-[#E3DFD7]">취소</button>
+        <button onclick="executeResetData()" class="px-4 py-2 rounded-xl bg-terracotta text-white text-sm font-semibold hover:opacity-90">초기화 실행</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 토스트 알림 컨테이너 -->
+  <div id="toast-container" class="fixed bottom-20 md:bottom-6 right-4 sm:right-6 z-50 flex flex-col gap-2 max-w-xs w-full"></div>
+
+  <!-- =========================================================
+       JAVASCRIPT: 정적 데이터(미션 30+, 퀴즈 16+, 팔레트 22+) 및 앱 로직
+       ========================================================= -->
+  <script>
+    /* -----------------------------------------------------------
+       1. 정적 데이터 정의
+       - MISSIONS: 30개 (6개 분야 × 각 5개, 입문/기본/심화 고르게 배치)
+       - QUIZZES: 16개 (시각적 HTML/SVG 비교 카드 포함)
+       - PALETTES: 22개 (역할 설명 및 활용 아이디어 포함)
+       ----------------------------------------------------------- */
+
+    const MISSIONS = [
+      // [컬러 감각 5개]
+      {
+        id: 1, category: "컬러 감각", level: "입문", duration: "5분",
+        title: "내 주변 사물에서 60 : 30 : 10 배색 비율 찾기",
+        intro: "좋은 인테리어와 그래픽 디자인은 대부분 주조색(60%), 보조색(30%), 강조색(10%)의 황금 비율을 따릅니다. 지금 앉아 있는 공간에서 이 비율을 관찰해보세요.",
+        steps: [
+          "고개를 들어 현재 방이나 카페 공간에서 가장 넓은 면적을 차지하는 색(벽, 바닥, 테이블)을 확인합니다.",
+          "두 번째로 면적이 큰 보조 색상(의자, 커튼, 노트북 등)을 찾습니다.",
+          "가장 작지만 시선을 확 끄는 10%의 포인트 컬러(머그컵, 책 표지, 식물 등)를 포착합니다."
+        ],
+        focus: "강조색(10%)이 없다면 공간이 밋밋해 보이고, 반대로 강조색이 30% 이상으로 커지면 시각적 피로도가 급격히 올라갑니다.",
+        explanation: "배색의 핵심은 '색을 많이 쓰는 것'이 아니라 '면적을 통제하는 것'입니다. 60:30:10 법칙은 웹페이지의 배경·카드·CTA 버튼 배치에도 동일하게 적용됩니다.",
+        question: "오늘 발견한 10%의 강조색을 제거한다면 그 공간은 어떤 느낌으로 변할까요?"
+      },
+      {
+        id: 2, category: "컬러 감각", level: "입문", duration: "5분",
+        title: "순수 검정(#000000) 대신 깊이 있는 다크 톤 관찰하기",
+        intro: "세련된 웹사이트나 매거진은 텍스트나 배경에 완전한 검정(#000000) 대신 따뜻한 차콜이나 딥 네이비를 즐겨 사용합니다.",
+        steps: [
+          "자주 방문하는 감각적인 브랜드 웹사이트나 앱 2곳을 열어봅니다.",
+          "본문 글씨와 어두운 배경이 순수한 검정인지, 미세한 회색·갈색·남색 기운이 섞여 있는지 자세히 들여다봅니다.",
+          "오늘의 컬러 연구소 팔레트에서 가장 어두운 색의 HEX 값을 확인해 비교해봅니다."
+        ],
+        focus: "순수 검정(#000000)은 빛을 0% 반사하여 하얀 배경(#FFFFFF)과 만날 때 눈부심(Halation 현상)을 유발할 수 있습니다.",
+        explanation: "자연계에는 완전한 #000000이 거의 존재하지 않습니다. #1F211E 같은 차콜 그레이를 사용하면 배경과 부드럽게 어우러지며 고급스러운 인쇄물 같은 인상을 줍니다.",
+        question: "내가 최근 만든 문서나 게시물의 글자색은 순수 검정이었나요, 아니면 온도가 있는 어두운 색이었나요?"
+      },
+      {
+        id: 3, category: "컬러 감각", level: "기본", duration: "5분",
+        title: "채도를 낮춘 '뮤트(Muted) 톤'의 차분함 이해하기",
+        intro: "원색(고채도)은 강렬하지만 오래 보기 어렵습니다. 회색빛이 살짝 섞인 저채도·중명도 컬러가 주는 안정감을 분석해봅니다.",
+        steps: [
+          "스마트폰 갤러리에서 가장 마음에 드는 풍경 또는 카페 사진 1장을 고릅니다.",
+          "사진 속 주요 색상 3가지를 머릿속으로 추출해 봅니다.",
+          "그 색들이 쨍한 원색에 가까운지, 부드럽게 톤 다운된 색인지 관찰합니다."
+        ],
+        focus: "채도를 한 단계 낮추면 서로 다른 색상끼리 조합해도 충돌하지 않고 조화롭게 묶입니다.",
+        explanation: "초보자가 배색에 실패하는 가장 흔한 이유는 채도가 높은 색 여러 개를 동시에 쓰는 것입니다. 채도를 낮추면 전체 톤앤매너가 쉽게 통일됩니다.",
+        question: "현재 내 휴대폰 배경화면의 채도는 높은 편인가요, 낮은 편인가요?"
+      },
+      {
+        id: 4, category: "컬러 감각", level: "기본", duration: "5분",
+        title: "자연의 그라데이션에서 4단계 명도 스펙트럼 추출하기",
+        intro: "자연은 최고의 컬러리스트입니다. 나뭇잎, 하늘, 돌멩이 하나에도 밝은 빛부터 깊은 그림자까지 완벽한 명도 단계가 들어 있습니다.",
+        steps: [
+          "창밖의 하늘이나 식물, 혹은 책상 위 나무 소품 하나를 30초간 집중해서 바라봅니다.",
+          "빛이 가장 직접 닿는 하이라이트 부분의 색을 확인합니다.",
+          "중간 톤과 그림자가 진 가장 어두운 부분의 색 차이를 비교해봅니다."
+        ],
+        focus: "색상(Hue)을 바꾸지 않고 명도(Brightness)와 채도만 조절해도 풍성한 UI 계층을 만들 수 있습니다.",
+        explanation: "단색(Monochromatic) 배색이 세련되어 보이는 이유는 명도 대비가 명확하기 때문입니다. 배경-카드-테두리-텍스트를 동일 계열의 명도 차이로 설계해보세요.",
+        question: "빛과 그림자가 만든 명도 차이는 평면적인 사물에 어떻게 입체감을 부여하나요?"
+      },
+      {
+        id: 5, category: "컬러 감각", level: "심화", duration: "5분",
+        title: "보색 대비를 세련되게 중화하는 비율 실험",
+        intro: "빨강과 초록, 파랑과 주황 같은 보색 관계는 자칫 촌스러워질 수 있지만, 면적과 톤을 조절하면 가장 역동적인 에너지를 냅니다.",
+        steps: [
+          "컬러 연구소에서 보색 계열이 포함된 팔레트(예: 테라코타와 세이지 그린)를 살펴봅니다.",
+          "두 색이 1:1 비율일 때와 8:2 비율일 때 시선이 어디로 향하는지 상상해봅니다.",
+          "중간에 아이보리나 웜그레이 같은 무채색 완충지대가 있을 때의 효과를 확인합니다."
+        ],
+        focus: "보색 사이에는 반드시 숨 쉴 수 있는 뉴트럴 컬러(아이보리, 베이지, 쿨그레이)를 배치해야 시각적 진동이 멈춥니다.",
+        explanation: "보색 대비는 시선을 즉시 사로잡아야 하는 배너, 포스터, 행동 유도 버튼(CTA)에 매우 효과적입니다.",
+        question: "강렬한 보색 조합을 차분하게 가라앉히는 가장 좋은 완충 색상은 무엇일까요?"
+      },
+
+      // [폰트 감각 5개]
+      {
+        id: 6, category: "폰트 감각", level: "입문", duration: "5분",
+        title: "세리프(명조)와 산세리프(고딕)의 온도 차이 느끼기",
+        intro: "글자의 획 끝에 삐침이 있는 명조체(Serif)와 깔끔하게 떨어지는 고딕체(Sans-serif)는 전혀 다른 인격과 분위기를 전달합니다.",
+        steps: [
+          "지금 보고 있는 화면 상단의 'MOOD DAILY.' 로고(세리프)와 본문 한글(산세리프)의 인상을 비교해봅니다.",
+          "책장이나 주변 패키지에 적힌 글자 중 명조체로 쓰인 문구 1개를 찾아봅니다.",
+          "만약 그 문구를 굵은 고딕체로 바꾼다면 브랜드의 느낌이 어떻게 달라질지 떠올려봅니다."
+        ],
+        focus: "세리프는 신뢰·전통·감성·문학적인 분위기를, 산세리프는 현대적·명쾌함·실용성·디지털 친화적인 인상을 줍니다.",
+        explanation: "제목에는 감성적인 세리프를, 긴 본문에는 가독성이 높은 산세리프를 매칭하는 '믹스 매치'는 에디토리얼 디자인의 정석입니다.",
+        question: "내가 만들고 싶은 콘텐츠나 브랜드는 명조에 가까울까요, 고딕에 가까울까요?"
+      },
+      {
+        id: 7, category: "폰트 감각", level: "입문", duration: "5분",
+        title: "읽기 편한 본문의 줄간격(Line-height) 황금비율 관찰",
+        intro: "아무리 좋은 글도 줄 사이가 너무 좁으면 답답하고, 너무 넓으면 시선이 길을 잃습니다.",
+        steps: [
+          "스마트폰으로 즐겨 읽는 뉴스레터나 브런치·블로그 글 하나를 엽니다.",
+          "한 줄에 한글 기준 몇 글자 정도가 들어가는지 세어봅니다(보통 25~38자 내외가 쾌적합니다).",
+          "윗줄과 아랫줄 사이의 흰 공간이 글자 높이의 약 1.5~1.7배 정도 되는지 눈으로 가늠해봅니다."
+        ],
+        focus: "웹 환경에서 한글 본문은 글자 크기의 1.6배(160%) 내외 줄간격일 때 눈의 피로가 가장 적습니다.",
+        explanation: "행간이 좁으면 다음 줄을 찾을 때 시선이 엉키고, 행간이 넓으면 문단이 하나의 덩어리로 읽히지 않고 흩어집니다.",
+        question: "평소 내가 작성하는 PPT나 카드뉴스의 줄간격은 기본값 그대로 방치되어 있지 않나요?"
+      },
+      {
+        id: 8, category: "폰트 감각", level: "기본", duration: "5분",
+        title: "굵기(Weight)와 크기 대비만으로 위계 만들기",
+        intro: "색을 여러 개 쓰지 않고도 글자의 크기와 굵기 차이만으로 무엇을 먼저 읽어야 할지 명확히 안내할 수 있습니다.",
+        steps: [
+          "주변의 카페 영수증, 제품 성분표, 혹은 책의 목차 페이지를 펼쳐봅니다.",
+          "가장 먼저 눈에 들어오는 텍스트(1순위)와 그다음 읽히는 텍스트(2순위)의 크기 차이를 비교합니다.",
+          "같은 크기라도 Bold(굵게)와 Regular(보통)의 대비가 주는 리듬감을 관찰합니다."
+        ],
+        focus: "제목과 본문의 크기 차이는 최소 1.5배 이상 벌어져야 시각적 위계(Hierarchy)가 뚜렷하게 형성됩니다.",
+        explanation: "16px 본문에 18px 제목을 쓰면 제목처럼 보이지 않습니다. 과감하게 24px~28px로 키우고 굵기를 조절하면 레이아웃이 단번에 정리됩니다.",
+        question: "정보가 많은 화면에서 사용자에게 가장 먼저 읽히게 하고 싶은 단 한 줄은 무엇인가요?"
+      },
+      {
+        id: 9, category: "폰트 감각", level: "기본", duration: "5분",
+        title: "자간(Letter-spacing) 미세 조정이 만드는 고급스러움",
+        intro: "타이포그래피 디자이너들은 기본 자간을 그대로 쓰지 않습니다. 큰 제목은 자간을 살짝 좁히고, 작은 영문 라벨은 넓힙니다.",
+        steps: [
+          "웹사이트나 포스터에서 크기가 큰 한글 제목을 유심히 봅니다. 글자 사이가 벌어져 보이면 헐거워 보입니다.",
+          "반대로 작은 대문자 영문 태그(예: NEW ARRIVAL, EDITORIAL)는 자간이 넓을 때 세련되어 보입니다.",
+          "한글 제목은 -0.02em ~ -0.03em 정도 좁혔을 때 단단한 덩어리감이 생기는 원리를 떠올려봅니다."
+        ],
+        focus: "큰 글씨는 좁게(Tight), 작고 짧은 대문자 라벨은 넓게(Wide) 설정하는 것이 타이포그래피의 기본 공식입니다.",
+        explanation: "한글은 네모틀 구조라 글자 크기가 커질수록 글자 사이의 시각적 여백이 실제보다 넓어 보입니다. 제목 자간을 살짝 조여주면 밀도가 높아집니다.",
+        question: "최근 본 간판이나 포스터 중 글자 사이가 너무 벌어져 어색해 보였던 기억이 있나요?"
+      },
+      {
+        id: 10, category: "폰트 감각", level: "심화", duration: "5분",
+        title: "가운데 정렬 vs 왼쪽 정렬의 적절한 쓰임새 구분하기",
+        intro: "초보자가 가장 많이 하는 실수 중 하나는 긴 문장을 습관적으로 '가운데 정렬'하는 것입니다.",
+        steps: [
+          "3줄 이상 넘어가는 긴 안내문이나 카드뉴스 본문을 떠올려봅니다.",
+          "가운데 정렬일 때는 매 줄의 시작 위치가 달라져 눈이 매번 시작점을 다시 찾아야 합니다.",
+          "왼쪽 정렬일 때 왼쪽 수직선(축)이 반듯하게 맞아떨어지며 생기는 안정감을 비교해봅니다."
+        ],
+        focus: "가운데 정렬은 1~2줄의 짧은 시적 문구나 초대장 제목에 적합하고, 3줄 이상의 정보성 텍스트는 무조건 왼쪽 정렬이 유리합니다.",
+        explanation: "왼쪽 정렬은 시선의 시작점을 고정해 읽기 속도를 높이고, 화면 전체에 보이지 않는 깔끔한 그리드 축을 만들어줍니다.",
+        question: "내 슬라이드나 문서에서 불필요하게 가운데 정렬된 본문은 없나요?"
+      },
+
+      // [레이아웃 감각 5개]
+      {
+        id: 11, category: "레이아웃 감각", level: "입문", duration: "5분",
+        title: "여백(Whitespace)은 '빈 공간'이 아니라 '숨 쉬는 장치'",
+        intro: "화면을 꽉 채워야 알차 보인다는 강박을 버리면 디자인의 품격이 달라집니다.",
+        steps: [
+          "애플(Apple), 무인양품(MUJI), 또는 미니멀한 매거진 웹페이지를 하나 떠올리거나 열어봅니다.",
+          "전체 화면 면적 중 텍스트와 이미지가 차지하는 비율과 아무것도 없는 흰 여백의 비율을 가늠해봅니다.",
+          "여백이 넓을수록 중앙의 핵심 오브제가 얼마나 더 귀중하고 집중도 높게 보이는지 관찰합니다."
+        ],
+        focus: "여백은 요소를 밀어내는 공간이 아니라, 중요한 콘텐츠를 돋보이게 만드는 프레임입니다.",
+        explanation: "럭셔리 브랜드일수록 매장 진열대 간격이 넓고 웹사이트 여백이 넉넉합니다. 정보가 많을수록 요소 간 여백을 더 확보해야 이해도가 높아집니다.",
+        question: "지금 작업 중인 화면에서 요소 하나를 덜어내고 여백을 20% 늘린다면 무엇을 뺄 수 있을까요?"
+      },
+      {
+        id: 12, category: "레이아웃 감각", level: "입문", duration: "5분",
+        title: "근접성의 원칙: 관련 있는 정보끼리 묶어주기",
+        intro: "게슈탈트 심리학의 '근접성(Proximity)' 원칙에 따르면, 가까이 있는 요소들은 하나의 그룹으로 인식됩니다.",
+        steps: [
+          "스마트폰 앱의 상품 카드나 뉴스 목록 하나를 자세히 봅니다.",
+          "제목과 날짜, 요약글 사이의 간격(내부 여백)과, 카드와 다음 카드 사이의 간격(외부 여백)을 비교합니다.",
+          "내부 여백보다 외부 여백이 훨씬 넓어야 정보가 섞이지 않고 명확히 구분됨을 확인합니다."
+        ],
+        focus: "소제목은 앞 문단보다 자신이 설명할 뒷 문단에 훨씬 더 가까이 붙어 있어야 합니다.",
+        explanation: "선(Divider)이나 박스를 많이 그리지 않고도, 간격의 강약(좁은 간격 vs 넓은 간격)만으로 깔끔하게 정보를 그룹핑할 수 있습니다.",
+        question: "내가 만든 문서의 소제목이 위 문단과 아래 문단 정중앙에 애매하게 떠 있지는 않나요?"
+      },
+      {
+        id: 13, category: "레이아웃 감각", level: "기본", duration: "5분",
+        title: "보이지 않는 수직선(Alignment Axis) 찾아내기",
+        intro: "정돈된 레이아웃의 비밀은 화면 위에 그어진 보이지 않는 수직 정렬선에 있습니다.",
+        steps: [
+          "현재 보고 있는 MOOD DAILY. 대시보드 화면에서 왼쪽 가장자리를 따라 위에서 아래로 시선을 내려봅니다.",
+          "로고, 인사말 카드, 미션 카드의 왼쪽 시작점이 하나의 보이지 않는 수직선 위에 나란히 정렬되어 있음을 확인합니다.",
+          "주변의 신문, 잡지, 혹은 웹사이트에서도 이 '기준선'을 찾아봅니다."
+        ],
+        focus: "화면 내 모든 요소는 최소한 하나 이상의 다른 요소와 가로 또는 세로 축이 맞물려야 합니다.",
+        explanation: "요소들이 제각각 다른 위치에서 시작하면 뇌는 이를 무질서로 인식합니다. 정렬 축을 2~3개 이내로 제한하면 화면이 놀라울 만큼 단정해집니다.",
+        question: "지금 내 책상 위 물건들도 보이지 않는 수직·수평선에 맞춰 정렬해볼까요?"
+      },
+      {
+        id: 14, category: "레이아웃 감각", level: "기본", duration: "5분",
+        title: "F-패턴과 Z-패턴 시선 흐름 추적하기",
+        intro: "사람들은 웹페이지나 포스터를 볼 때 무작위로 보지 않고 일정한 시선 경로를 따라 이동합니다.",
+        steps: [
+          "정보가 많은 포털 메인 화면이나 쇼핑몰 상세페이지를 3초간 훑어봅니다.",
+          "내 눈동자가 왼쪽 상단에서 오른쪽으로 이동한 뒤, 아래로 내려가며 다시 왼쪽을 스캔하는(F-패턴) 움직임을 의식해봅니다.",
+          "반면 요소가 적은 랜딩페이지에서는 왼쪽 위 → 오른쪽 위 → 왼쪽 아래 → 오른쪽 아래(Z-패턴)로 시선이 흐릅니다."
+        ],
+        focus: "가장 중요한 로고나 핵심 메시지는 시선이 처음 닿는 좌측 상단 또는 시선이 최종 머무는 우측 하단에 배치합니다.",
+        explanation: "사용자의 자연스러운 시선 동선 위에 핵심 버튼과 제목을 놓으면 별다른 설명 없이도 클릭률과 이해도가 높아집니다.",
+        question: "내가 만든 화면의 우측 하단(Z-패턴의 종착점)에는 어떤 행동 유도 요소가 놓여 있나요?"
+      },
+      {
+        id: 15, category: "레이아웃 감각", level: "심화", duration: "5분",
+        title: "비대칭 균형(Asymmetrical Balance)의 역동성 관찰",
+        intro: "완벽한 좌우 대칭은 안정적이지만 다소 정적일 수 있습니다. 크기와 무게가 다른 요소를 비대칭으로 배치해 균형을 맞추는 법을 관찰합니다.",
+        steps: [
+          "왼쪽에는 큰 사진 1장이 있고, 오른쪽에는 작은 텍스트 뭉치와 여백이 있는 매거진 레이아웃을 떠올려봅니다.",
+          "면적은 다르지만 사진의 시각적 무게와 텍스트+여백의 무게가 시소처럼 균형을 이루는 지점을 느껴봅니다.",
+          "단조로운 1:1 대칭 대신 7:5 또는 8:4 비율이 주는 세련된 리듬감을 관찰합니다."
+        ],
+        focus: "큰 요소 하나와 작은 요소 여러 개, 혹은 진한 색 작은 면적과 연한 색 넓은 면적을 대비시키면 비대칭 균형이 완성됩니다.",
+        explanation: "에디토리얼 웹사이트나 포트폴리오에서 비대칭 그리드를 사용하면 지루함을 깨고 예술적인 긴장감을 불어넣을 수 있습니다.",
+        question: "정직한 5:5 분할 대신 7:5 분할을 적용하면 더 매력적으로 보일 콘텐츠는 무엇일까요?"
+      },
+
+      // [이미지 감각 5개]
+      {
+        id: 16, category: "이미지 감각", level: "입문", duration: "5분",
+        title: "3분할 구도(Rule of Thirds)로 시선의 중심 이동하기",
+        intro: "피사체를 항상 정중앙에 놓는 습관에서 벗어나, 가로·세로 3등분 교차점에 주제를 배치하는 감각을 익힙니다.",
+        steps: [
+          "스마트폰 카메라 앱을 켜고 설정에서 '격자(Grid)' 기능을 활성화합니다(이미 켜져 있다면 확인만 합니다).",
+          "책상 위 컵이나 소품을 정중앙에 두었을 때와, 왼쪽 세로선 교차점에 두었을 때의 여백 차이를 비교합니다.",
+          "피사체가 바라보는 방향 쪽으로 여백을 더 넓게 남겼을 때의 개방감을 관찰합니다."
+        ],
+        focus: "교차점에 주제를 두고 나머지 2/3 공간을 여백으로 비우면 사진 위에 텍스트를 얹기도 훨씬 쉬워집니다.",
+        explanation: "정중앙 구도는 정직하고 기념사진 같은 느낌을 주지만, 3분할 구도는 이야기와 공간의 흐름을 만들어냅니다.",
+        question: "블로그 썸네일용 사진을 찍을 때 텍스트가 들어갈 2/3 여백을 미리 비워두고 촬영하나요?"
+      },
+      {
+        id: 17, category: "이미지 감각", level: "입문", duration: "5분",
+        title: "자연광의 방향(측광 vs 역광)이 만드는 질감 차이",
+        intro: "같은 사물도 빛이 어디서 비추느냐에 따라 평면적으로 보이기도 하고, 입체적인 질감이 살아나기도 합니다.",
+        steps: [
+          "창가 근처에 있는 사물(또는 자신의 손등)을 바라봅니다.",
+          "빛을 정면으로 받을 때(순광)와 옆에서 비스듬히 받을 때(측광) 그림자의 길이를 비교합니다.",
+          "측광일 때 종이의 결, 도자기의 오돌토돌한 질감이 얼마나 선명하게 드러나는지 관찰합니다."
+        ],
+        focus: "음식, 공예품, 인물의 입체감을 살리고 싶다면 정면 플래시 대신 45도 측면에서 들어오는 부드러운 자연광을 활용하세요.",
+        explanation: "그림자가 있어야 빛이 보입니다. 미세한 그림자의 그라데이션이 이미지에 깊이와 온기를 부여합니다.",
+        question: "오늘 내가 찍은 사진 속 빛은 어느 방향에서 오고 있었나요?"
+      },
+      {
+        id: 18, category: "이미지 감각", level: "기본", duration: "5분",
+        title: "전경·중경·배경의 레이어로 평면 사진에 깊이감 주기",
+        intro: "2차원 화면에 3차원 공간감을 불어넣는 가장 확실한 방법은 앞-중간-뒤의 거리감을 설계하는 것입니다.",
+        steps: [
+          "인상 깊게 본 영화 스틸컷이나 감성 사진 한 장을 떠올려봅니다.",
+          "카메라 바로 앞에 흐릿하게 걸린 물체(전경), 주인공(중경), 멀리 보이는 풍경(배경)을 구분해봅니다.",
+          "세 층위가 겹치면서 만들어내는 원근감을 느껴봅니다."
+        ],
+        focus: "주인공 앞에 작은 소품이나 나뭇잎을 살짝 걸치기만 해도 관음적 시선과 현장감이 살아납니다.",
+        explanation: "웹 디자인에서도 배경 패턴(배경) + 카드 컨테이너(중경) + 플로팅 버튼(전경)의 그림자 층위를 통해 동일한 깊이감을 구현합니다.",
+        question: "평면적인 화면에 깊이감을 더하기 위해 활용할 수 있는 가장 간단한 시각 장치는 무엇일까요?"
+      },
+      {
+        id: 19, category: "이미지 감각", level: "기본", duration: "5분",
+        title: "프레임 속 프레임(Frame within a Frame) 구도 찾기",
+        intro: "문틀, 창문, 아치형 통로, 손 모양 등을 활용해 피사체를 한 번 더 감싸주면 시선이 자석처럼 집중됩니다.",
+        steps: [
+          "지금 있는 공간에서 문틀이나 창틀, 혹은 모니터 베젤 너머로 보이는 풍경을 바라봅니다.",
+          "주변의 어두운 구조물이 자연스러운 테두리(액자) 역할을 하며 안쪽 밝은 피사체를 강조하는 모습을 관찰합니다.",
+          "SNS 피드에서 이런 구도로 촬영된 사진을 1장 찾아봅니다."
+        ],
+        focus: "프레임 속 프레임은 불필요한 주변 배경을 가려주고, 관람자의 시선을 핵심 주제로 강하게 유도합니다.",
+        explanation: "복잡한 배경을 정리할 수 없을 때, 앞쪽의 구조물을 액자처럼 활용하면 단번에 정돈된 구도를 얻을 수 있습니다.",
+        question: "내 주변에서 자연스러운 액자 프레임으로 활용할 수 있는 사물은 무엇이 있나요?"
+      },
+      {
+        id: 20, category: "이미지 감각", level: "심화", duration: "5분",
+        title: "이미지 톤앤매너 통일: 색온도(Warm vs Cool) 일치시키기",
+        intro: "여러 장의 사진을 한 페이지에 배치할 때, 각각의 색온도가 다르면 전체 디자인이 산만해집니다.",
+        steps: [
+          "인스타그램 피드나 포트폴리오 그리드를 볼 때 전체적으로 통일감이 느껴지는 계정을 떠올려봅니다.",
+          "그 계정 사진들의 색온도가 따뜻한 노란빛(Warm)으로 통일되어 있는지, 차가운 푸른빛(Cool)으로 통일되어 있는지 살핍니다.",
+          "사진마다 밝기(Exposure)와 대비(Contrast) 수준이 일정하게 유지되는지 확인합니다."
+        ],
+        focus: "개별 사진이 아무리 예뻐도 색온도가 제각각이면 브랜드의 일관된 무드가 깨집니다.",
+        explanation: "웹사이트나 슬라이드에 여러 이미지를 쓸 때는 동일한 필터 프리셋을 적용하거나 색온도를 미세하게 맞춰주는 것만으로 전문가의 손길이 느껴집니다.",
+        question: "나의 블로그나 SNS 피드를 대표하는 색온도는 따뜻한 쪽인가요, 차가운 쪽인가요?"
+      },
+
+      // [디자인 분석 5개]
+      {
+        id: 21, category: "디자인 분석", level: "입문", duration: "5분",
+        title: "내가 매일 쓰는 앱의 '가장 잘 만든 버튼' 하나 분석하기",
+        intro: "좋은 UI 디자인은 사용자가 고민하지 않고 다음 행동을 누르게 만듭니다.",
+        steps: [
+          "오늘 가장 자주 연 앱(메신저, 음악, 쇼핑 등) 하나를 켭니다.",
+          "화면에서 가장 눈에 띄는 핵심 행동 버튼(예: 결제하기, 재생, 글쓰기)을 찾습니다.",
+          "그 버튼이 배경과 어떻게 구분되는지(색상, 크기, 위치, 그림자, 아이콘 유무) 3가지 이유를 꼽아봅니다."
+        ],
+        focus: "핵심 버튼은 화면 내에서 가장 높은 명도 대비를 가지며, 엄지손가락이 닿기 편한 하단 영역에 위치하는 경우가 많습니다.",
+        explanation: "모든 버튼을 강조하면 아무것도 강조되지 않습니다. Primary(주), Secondary(보조), Ghost(텍스트형) 버튼의 위계를 구분하는 것이 핵심입니다.",
+        question: "이 화면에서 그 버튼의 색을 회색으로 바꾼다면 사용자가 길을 잃지 않을까요?"
+      },
+      {
+        id: 22, category: "디자인 분석", level: "입문", duration: "5분",
+        title: "카페 메뉴판이나 음료 패키지에서 '정보의 우선순위' 읽기",
+        intro: "일상 속 인쇄물은 제한된 면적 안에 많은 정보를 담아야 하므로 위계 설계를 공부하기에 최고의 교재입니다.",
+        steps: [
+          "책상 위 음료 캔, 화장품 용기, 또는 카페 전단지 하나를 집어 듭니다.",
+          "가장 크게 적힌 브랜드명, 두 번째로 강조된 핵심 효능/맛, 가장 작게 적힌 용량·주의사항의 크기 비율을 봅니다.",
+          "정보가 3단계 위계로 깔끔하게 정리되어 있는지, 아니면 모든 글씨가 비슷하게 커서 산만한지 평가해봅니다."
+        ],
+        focus: "우수한 패키지는 1초 만에 '무엇을 파는 물건인지' 알 수 있고, 3초 안에 '어떤 특징이 있는지' 읽힙니다.",
+        explanation: "정보의 우선순위를 정한다는 것은 '무엇을 작게 만들지 결정하는 용기'와 같습니다.",
+        question: "내가 최근 만든 자료에서 모든 내용을 크게 쓰려고 욕심낸 부분은 없었나요?"
+      },
+      {
+        id: 23, category: "디자인 분석", level: "기본", duration: "5분",
+        title: "모서리 곡률(Border Radius)이 결정하는 브랜드의 성격",
+        intro: "사각형의 모서리가 0px로 직각일 때와 16px~24px로 둥글 때, 사용자가 느끼는 심리적 거리감이 달라집니다.",
+        steps: [
+          "지금 보고 있는 MOOD DAILY. 카드의 둥근 모서리(20px)를 살펴봅니다.",
+          "직각(0px) 위주의 건축·패션 매거진 사이트와, 둥근 모서리(16px 이상) 위주의 토스·카카오 같은 라이프스타일 앱을 비교해봅니다.",
+          "각진 모서리는 '전문성·긴장감·격식'을, 둥근 모서리는 '친근함·부드러움·안전감'을 전달함을 느껴봅니다."
+        ],
+        focus: "큰 카드의 모서리가 20px이라면 내부 작은 버튼은 10px~12px 정도로 비례를 맞추어야 어색하지 않습니다.",
+        explanation: "바깥 박스와 안쪽 박스의 곡률(Radius)을 조화롭게 맞추는 디테일(Concentric border radius)이 완성도를 결정합니다.",
+        question: "내가 표현하고 싶은 브랜드의 성격은 날카로운 직각에 가까울까요, 부드러운 곡선에 가까울까요?"
+      },
+      {
+        id: 24, category: "디자인 분석", level: "기본", duration: "5분",
+        title: "아이콘 스타일의 일관성(선 굵기 · 채움 여부) 점검하기",
+        intro: "작은 아이콘 하나가 전체 화면의 통일성을 살리기도, 망치기도 합니다.",
+        steps: [
+          "자주 쓰는 앱의 하단 탭 바 아이콘 4~5개를 나란히 관찰합니다.",
+          "모두 선(Outline)으로만 그려져 있는지, 아니면 면(Filled)으로 채워져 있는지 확인합니다.",
+          "선 끝부분이 둥근지(Round cap) 각진지(Square cap), 그리고 선 굵기가 모두 동일한지 살펴봅니다."
+        ],
+        focus: "한 화면 안에서 선 아이콘과 면 아이콘을 무분별하게 섞어 쓰면 시각적 노이즈가 발생합니다(선택된 탭만 면 아이콘으로 바꾸는 것은 좋은 활용입니다).",
+        explanation: "아이콘은 글자보다 빠르게 의미를 전달하는 시각 언어입니다. 동일한 그리드와 획 두께를 가진 아이콘 세트를 사용하는 것이 중요합니다.",
+        question: "발표 자료를 만들 때 여러 사이트에서 제각각 다른 스타일의 아이콘을 섞어 쓴 적은 없나요?"
+      },
+      {
+        id: 25, category: "디자인 분석", level: "심화", duration: "5분",
+        title: "좋은 온보딩·빈 상태(Empty State) 화면의 친절함 분석",
+        intro: "데이터가 아직 없는 텅 빈 화면을 어떻게 디자인하느냐에서 서비스의 배려와 미감이 드러납니다.",
+        steps: [
+          "MOOD DAILY.의 '나의 취향 아카이브' 탭에서 기록이 없을 때 나타나는 안내 문구를 떠올려봅니다.",
+          "단순히 '데이터가 없습니다'라고 적힌 화면과, 다음 행동을 따뜻하게 제안하는 화면의 차이를 비교합니다.",
+          "에러 메시지나 빈 화면이 사용자에게 주는 심리적 안도감을 생각해봅니다."
+        ],
+        focus: "빈 상태 디자인은 '왜 비어 있는지 설명 + 다음에 할 수 있는 행동 버튼' 두 가지가 결합될 때 가장 훌륭합니다.",
+        explanation: "디자이너의 진짜 실력은 데이터가 가득 찬 이상적인 화면이 아니라, 데이터가 없거나 너무 많을 때의 예외 상황을 다루는 데서 나타납니다.",
+        question: "내가 만드는 결과물에서 사용자가 막막함을 느낄 수 있는 '빈 순간'은 언제일까요?"
+      },
+
+      // [창작 연습 5개]
+      {
+        id: 26, category: "창작 연습", level: "입문", duration: "5분",
+        title: "나만의 '오늘의 무드 팔레트' 4색 직접 조합해보기",
+        intro: "관찰을 넘어 직접 색을 골라 배치해보는 5분 창작 실습입니다.",
+        steps: [
+          "오늘의 컬러 연구소 탭으로 이동해 '+ 나만의 배색 만들기' 버튼을 누릅니다.",
+          "지금 내 기분이나 창밖 날씨를 떠올리며 배경색 1개, 보조색 1개, 진한 글자색 1개, 포인트색 1개를 고릅니다.",
+          "조합한 팔레트에 감각적인 이름을 지어 나의 아카이브에 저장합니다."
+        ],
+        focus: "배경색은 아주 밝거나 아주 어둡게 설정해야 그 위에 올라가는 텍스트가 선명하게 읽힙니다.",
+        explanation: "남이 만든 팔레트를 보는 것과 직접 컬러 피커를 움직여 명도 차이를 조율해보는 것은 감각의 근육을 쓰는 차원이 다릅니다.",
+        question: "직접 고른 4가지 색 중 가장 마음에 드는 조합은 어떤 두 색의 만남인가요?"
+      },
+      {
+        id: 27, category: "창작 연습", level: "입문", duration: "5분",
+        title: "한 문장 헤드라인에 2가지 강조 방식 적용해보기",
+        intro: "같은 문장이라도 어디에 힘을 주느냐에 따라 전달되는 메시지가 완전히 달라집니다.",
+        steps: [
+          "머릿속으로 짧은 홍보 문구 하나를 정합니다(예: '매일 5분, 작은 관찰이 당신의 취향을 바꿉니다').",
+          "첫 번째 버전은 '매일 5분'을 크게 강조하고, 두 번째 버전은 '당신의 취향'을 강조한다고 상상하거나 메모장에 적어봅니다.",
+          "어떤 키워드를 강조했을 때 타깃 독자가 더 매력을 느낄지 비교해봅니다."
+        ],
+        focus: "문장 전체를 굵게 처리하면 아무것도 강조되지 않습니다. 핵심 명사 하나에만 강세를 주세요.",
+        explanation: "카피라이팅과 타이포그래피는 떼려야 뗄 수 없는 관계입니다. 글의 강약 조절이 곧 레이아웃의 리듬을 만듭니다.",
+        question: "나의 자기소개나 프로젝트 한 줄 설명에서 가장 굵게 표시해야 할 단어는 무엇인가요?"
+      },
+      {
+        id: 28, category: "창작 연습", level: "기본", duration: "5분",
+        title: "3개의 사각형만으로 잡지 표지 레이아웃 스케치하기",
+        intro: "복잡한 그래픽 없이도 단 3개의 도형 배치만으로 균형 잡힌 포스터 구도를 설계해봅니다.",
+        steps: [
+          "메모장이나 이면지, 또는 머릿속에 세로로 긴 직사각형(A4 비율) 캔버스를 그립니다.",
+          "캔버스 안에 '큰 제목 영역', '메인 이미지 영역', '하단 설명글 영역' 3개의 사각형을 배치해봅니다.",
+          "바깥 테두리 여백(Margin)을 사방 동일하게 유지하면서 각 사각형이 깔끔한 축에 맞물리도록 조정합니다."
+        ],
+        focus: "와이어프레임(뼈대) 단계에서 균형이 잡히지 않은 레이아웃은 색과 사진을 입혀도 어수선합니다.",
+        explanation: "모든 훌륭한 그래픽 디자인은 단순한 기하학적 도형의 면적 분할에서 출발합니다.",
+        question: "3개의 영역 중 가장 넓은 면적을 차지한 주인공 영역은 무엇이었나요?"
+      },
+      {
+        id: 29, category: "창작 연습", level: "기본", duration: "5분",
+        title: "일상 속 평범한 문장을 '에디토리얼 톤'으로 다듬기",
+        intro: "지시적이고 딱딱한 안내 문구를 감각적이고 여운이 남는 표현으로 바꾸는 언어 미감 훈련입니다.",
+        steps: [
+          "딱딱한 문장 예시: '할 일을 완료했으면 아래 버튼을 눌러 저장하세요.'",
+          "이 문장을 친절하고 감각적인 톤으로 바꿔봅니다(예: '오늘의 작은 기록을 서랍에 차곡차곡 담아둘까요?').",
+          "하단의 감상 메모란에 내가 직접 다듬은 한 문장을 기록해봅니다."
+        ],
+        focus: "UX 라이팅(Microcopy) 역시 시각 디자인만큼이나 브랜드의 미감을 결정하는 중요한 요소입니다.",
+        explanation: "버튼 안의 단어 하나, 안내 문구 한 줄이 사용자의 기분을 바꾸고 서비스의 온도를 결정합니다.",
+        question: "내가 자주 쓰는 안내 문구 중 조금 더 따뜻하게 바꿀 수 있는 표현은 무엇인가요?"
+      },
+      {
+        id: 30, category: "창작 연습", level: "심화", duration: "5분",
+        title: "나만의 '디자인 취향 키워드 3가지' 정의하기",
+        intro: "그동안 관찰하고 저장한 컬러와 디자인 사례들을 돌아보며 나만의 미적 기준을 언어로 정립합니다.",
+        steps: [
+          "나의 취향 아카이브나 평소 즐겨 찾는 브랜드·공간들의 공통점을 떠올려봅니다.",
+          "그 분위기를 설명하는 형용사 3가지를 고릅니다(예: #차분한 #여백있는 #따뜻한 또는 #명쾌한 #구조적인 #대담한).",
+          "하단 메모란에 오늘 정한 나의 취향 키워드 3가지를 기록해 나침반으로 삼습니다."
+        ],
+        focus: "자신의 취향을 단어로 설명할 수 있을 때, 작업할 때마다 흔들리지 않는 일관된 기준이 생깁니다.",
+        explanation: "미감은 타고나는 재능이 아니라, 내가 무엇을 왜 좋아하는지 의식적으로 기록하고 언어화하는 과정에서 자라납니다.",
+        question: "1년 뒤 나의 작업물들을 한데 모았을 때 사람들이 어떤 3가지 단어로 기억해주길 바라나요?"
+      }
+    ];
+
+    /* -----------------------------------------------------------
+       2. 디자인 안목 테스트 데이터 (16문항, A vs B 시각 비교 렌더링 포함)
+       ----------------------------------------------------------- */
+    const QUIZZES = [
+      {
+        id: 1,
+        category: "컬러",
+        principle: "명도 대비와 배경 조화",
+        question: "장시간 읽어야 하는 에세이·뉴스레터 웹페이지에 더 눈이 편안하고 고급스러운 배색은?",
+        recommended: "B",
+        labelA: "순수 백색 + 원색 블루",
+        captionA: "고대비 원색 조합",
+        visualA: `
+          <div class="w-full h-full p-4 rounded-lg bg-[#FFFFFF] border border-gray-300 flex flex-col justify-between text-left">
+            <div class="text-xs font-bold text-[#0000FF] uppercase">NEWSLETTER</div>
+            <div class="text-base font-bold text-[#000000] my-1">오늘의 사유와 기록</div>
+            <p class="text-xs text-[#000000] leading-normal">순수한 흰색 바탕에 완전한 검정과 원색 파랑을 배치한 화면입니다.</p>
+          </div>
+        `,
+        labelB: "웜 아이보리 + 딥 차콜 & 세이지",
+        captionB: "온도감이 있는 저피로 배색",
+        visualB: `
+          <div class="w-full h-full p-4 rounded-lg bg-[#F7F5F0] border border-[#E3DFD7] flex flex-col justify-between text-left">
+            <div class="text-xs font-bold text-[#4A6352] uppercase">NEWSLETTER</div>
+            <div class="text-base font-bold text-[#1F211E] my-1">오늘의 사유와 기록</div>
+            <p class="text-xs text-[#4A4D48] leading-normal">종이 질감의 아이보리 바탕에 차콜 텍스트와 차분한 세이지 포인트를 썼습니다.</p>
+          </div>
+        `,
+        explanation: "A안처럼 강렬한 원색과 순백색(#FFFFFF) 조합은 순간적인 주목도는 높지만, 긴 글을 읽을 때 눈의 피로감을 유발할 수 있습니다. B안처럼 미세한 따뜻함이 감도는 아이보리(#F7F5F0)와 다크 차콜(#1F211E)은 인쇄물처럼 편안한 가독성과 차분한 신뢰감을 전달합니다.",
+        principleDetail: "텍스트 중심 매체에서는 순수 검정(#000)과 순백색(#FFF)의 극단적 대비를 살짝 완화하면 독서 몰입도가 높아집니다."
+      },
+      {
+        id: 2,
+        category: "레이아웃",
+        principle: "여백(Padding)과 시각적 숨통",
+        question: "같은 내용을 담은 두 카드 UI 중, 정보가 더 명쾌하게 읽히고 여유가 느껴지는 구성은?",
+        recommended: "A",
+        labelA: "넉넉한 내부 여백과 간격",
+        captionA: "여유로운 여백 설계",
+        visualA: `
+          <div class="w-full h-full p-5 rounded-xl bg-[#FAF9F6] border border-[#E3DFD7] flex flex-col justify-between text-left">
+            <div>
+              <span class="inline-block px-2 py-0.5 rounded bg-[#E8EFEA] text-[#4A6352] text-[10px] font-bold mb-2">EXHIBITION</span>
+              <div class="text-sm font-bold text-[#1F211E] mb-1.5">빛과 여백의 건축전</div>
+              <p class="text-xs text-[#666963] leading-relaxed">공간을 비움으로써 드러나는 빛의 결을 경험하는 전시입니다.</p>
+            </div>
+            <div class="pt-3 text-[11px] font-semibold text-[#4A6352]">자세히 보기 →</div>
+          </div>
+        `,
+        labelB: "테두리에 밀착된 좁은 여백",
+        captionB: "정보가 빽빽한 구성",
+        visualB: `
+          <div class="w-full h-full p-2 rounded-md bg-[#FAF9F6] border border-gray-400 flex flex-col justify-between text-left">
+            <div>
+              <span class="inline-block px-1 bg-gray-200 text-gray-800 text-[10px] font-bold">EXHIBITION</span>
+              <div class="text-sm font-bold text-[#1F211E]">빛과 여백의 건축전</div>
+              <p class="text-xs text-[#666963] leading-tight">공간을 비움으로써 드러나는 빛의 결을 경험하는 전시입니다.</p>
+            </div>
+            <div class="text-[11px] font-semibold text-gray-800 border-t border-gray-300 pt-1">자세히 보기 →</div>
+          </div>
+        `,
+        explanation: "A안은 카드 테두리와 콘텐츠 사이에 충분한 패딩(여백)을 두어 글자가 답답하게 갇혀 보이지 않습니다. B안처럼 여백이 부족하면 텍스트가 테두리 선과 시각적으로 충돌하여 내용을 읽기 전에 피로감을 주게 됩니다.",
+        principleDetail: "카드형 UI에서는 내부 여백(Padding)을 최소 20px 이상 확보할 때 콘텐츠의 가치가 한층 높아 보입니다."
+      },
+      {
+        id: 3,
+        category: "폰트",
+        principle: "시각적 위계(Typography Hierarchy)",
+        question: "전시 포스터 안내문 중, 핵심 정보(전시명·일정·장소)의 우선순위가 한눈에 파악되는 쪽은?",
+        recommended: "B",
+        labelA: "균일한 크기와 굵기",
+        captionA: "단조로운 텍스트 나열",
+        visualA: `
+          <div class="w-full h-full p-4 rounded-lg bg-[#EFECE6] flex flex-col justify-center text-left space-y-1.5">
+            <div class="text-xs font-medium text-[#1F211E]">2026 가을 디자인 위크 특별전</div>
+            <div class="text-xs font-medium text-[#1F211E]">일시: 2026년 11월 13일 - 11월 30일</div>
+            <div class="text-xs font-medium text-[#1F211E]">장소: 서울 성수동 스튜디오 04</div>
+            <div class="text-xs font-medium text-[#1F211E]">관람료: 무료 사전예약제</div>
+          </div>
+        `,
+        labelB: "크기·굵기·색상 강약 조절",
+        captionB: "3단계 위계 구조화",
+        visualB: `
+          <div class="w-full h-full p-4 rounded-lg bg-[#EFECE6] flex flex-col justify-between text-left">
+            <div>
+              <div class="text-[10px] font-bold tracking-wider text-[#C46D53] uppercase">SPECIAL EXHIBITION</div>
+              <div class="text-lg font-bold text-[#1F211E] leading-tight mt-0.5">2026 가을 디자인 위크</div>
+            </div>
+            <div class="pt-2 border-t border-[#D8D3C8] text-[11px] text-[#4A4D48] space-y-0.5">
+              <div><strong class="text-[#1F211E]">2026. 11. 13 — 11. 30</strong></div>
+              <div>서울 성수동 스튜디오 04 · 무료 관람</div>
+            </div>
+          </div>
+        `,
+        explanation: "A안은 모든 줄의 크기와 굵기가 같아 어디를 먼저 읽어야 할지 뇌가 스스로 분류해야 합니다. B안은 전시 제목을 크게 키우고, 부가 정보를 작고 차분한 톤으로 묶어 1초 만에 핵심 주제를 파악하게 돕습니다.",
+        principleDetail: "정보 설계에서는 모든 것을 강조하지 않고, '1순위(제목) → 2순위(핵심 일시) → 3순위(세부 안내)'로 크기를 차등화해야 합니다."
+      },
+      {
+        id: 4,
+        category: "폰트",
+        principle: "행간(Line-height)과 가독성",
+        question: "모바일 화면에서 4줄 분량의 소개글을 읽을 때 시선이 가장 편안하게 따라가는 구성은?",
+        recommended: "A",
+        labelA: "여유로운 행간 (1.65배)",
+        captionA: "숨통이 트인 줄간격",
+        visualA: `
+          <div class="w-full h-full p-4 rounded-lg bg-white flex items-center text-left">
+            <p class="text-xs text-[#1F211E]" style="line-height: 1.75;">
+              좋은 디자인은 화려한 장식을 더하는 것이 아니라, 불필요한 요소를 덜어내어 본질이 스스로 말하게 만드는 과정입니다. 매일 5분의 관찰이 당신의 기준을 바꿉니다.
+            </p>
+          </div>
+        `,
+        labelB: "촘촘한 행간 (1.15배)",
+        captionB: "윗줄과 아랫줄이 붙은 간격",
+        visualB: `
+          <div class="w-full h-full p-4 rounded-lg bg-white flex items-center text-left">
+            <p class="text-xs text-[#1F211E]" style="line-height: 1.15;">
+              좋은 디자인은 화려한 장식을 더하는 것이 아니라, 불필요한 요소를 덜어내어 본질이 스스로 말하게 만드는 과정입니다. 매일 5분의 관찰이 당신의 기준을 바꿉니다.
+            </p>
+          </div>
+        `,
+        explanation: "A안은 줄과 줄 사이에 글자 높이의 약 65~75%에 해당하는 흰 공간이 있어 눈이 다음 줄의 시작점을 쉽게 찾습니다. B안처럼 행간이 좁으면 한글의 받침과 다음 줄의 초성이 부딪혀 답답한 인상을 줍니다.",
+        principleDetail: "한글 본문 가독성의 황금 구간은 줄간격(line-height) 1.55 ~ 1.75 사이입니다."
+      },
+      {
+        id: 5,
+        category: "레이아웃",
+        principle: "정렬 축의 통일(Alignment)",
+        question: "프로필 소개 카드에서 정돈되고 안정적인 균형감이 느껴지는 정렬 방식은?",
+        recommended: "B",
+        labelA: "요소별 제각각 혼합 정렬",
+        captionA: "왼쪽·가운데·오른쪽 혼재",
+        visualA: `
+          <div class="w-full h-full p-4 rounded-xl bg-white border border-gray-200 flex flex-col justify-between">
+            <div class="text-left text-xs font-bold text-[#4A6352]">CREATIVE DIRECTOR</div>
+            <div class="text-center text-base font-bold text-[#1F211E]">김서연 디자이너</div>
+            <div class="text-right text-[11px] text-gray-500">브랜드 아이덴티티 &amp; 에디토리얼</div>
+          </div>
+        `,
+        labelB: "단일 수직축 왼쪽 정렬",
+        captionB: "하나의 기준선으로 통일",
+        visualB: `
+          <div class="w-full h-full p-4 rounded-xl bg-white border border-gray-200 flex flex-col justify-between text-left">
+            <div class="text-xs font-bold text-[#4A6352]">CREATIVE DIRECTOR</div>
+            <div class="text-base font-bold text-[#1F211E]">김서연 디자이너</div>
+            <div class="text-[11px] text-gray-500">브랜드 아이덴티티 &amp; 에디토리얼</div>
+          </div>
+        `,
+        explanation: "A안은 한 박스 안에서 왼쪽, 가운데, 오른쪽 정렬을 모두 사용해 시선이 지그재그로 흔들립니다. B안은 모든 텍스트의 왼쪽 시작선을 하나로 일치시켜 깔끔하고 신뢰감 있는 질서를 만들어냅니다.",
+        principleDetail: "한 카드나 섹션 안에서는 정렬 방향을 하나로 통일하는 것이 가장 안전하고 세련된 선택입니다."
+      },
+      {
+        id: 6,
+        category: "디자인 분석",
+        principle: "버튼 위계(Primary vs Secondary)",
+        question: "사용자가 '저장하기'를 실수 없이 누르도록 유도하는 더 명확한 버튼 구성은?",
+        recommended: "A",
+        labelA: "주 버튼과 보조 버튼의 명확한 대비",
+        captionA: "역할에 따른 시각적 무게 분리",
+        visualA: `
+          <div class="w-full h-full p-4 rounded-xl bg-[#FAF9F6] flex flex-col justify-center items-center gap-3">
+            <div class="text-xs text-muted">변경된 내용을 아카이브에 보관할까요?</div>
+            <div class="flex items-center gap-2.5 w-full justify-center">
+              <span class="px-4 py-2 rounded-lg bg-white border border-[#D4CFC5] text-xs font-medium text-[#666963]">취소</span>
+              <span class="px-5 py-2 rounded-lg bg-[#4A6352] text-white text-xs font-bold shadow-xs">아카이브 저장</span>
+            </div>
+          </div>
+        `,
+        labelB: "동일한 강조 스타일의 두 버튼",
+        captionB: "두 버튼이 경쟁하는 구조",
+        visualB: `
+          <div class="w-full h-full p-4 rounded-xl bg-[#FAF9F6] flex flex-col justify-center items-center gap-3">
+            <div class="text-xs text-muted">변경된 내용을 아카이브에 보관할까요?</div>
+            <div class="flex items-center gap-2.5 w-full justify-center">
+              <span class="px-4 py-2 rounded-lg bg-[#C46D53] text-white text-xs font-bold">취소</span>
+              <span class="px-4 py-2 rounded-lg bg-[#4A6352] text-white text-xs font-bold">아카이브 저장</span>
+            </div>
+          </div>
+        `,
+        explanation: "B안은 '취소'와 '저장' 모두 진한 배경색을 사용하여 두 버튼이 시선을 두고 경쟁합니다. A안은 핵심 행동(저장)에만 채워진 면(Filled) 스타일을 부여하고, 취소는 가벼운 외곽선 버튼으로 처리해 사용자의 인지 부담을 줄였습니다.",
+        principleDetail: "한 화면 영역에서 가장 중요한 핵심 행동 버튼(Primary CTA)은 단 하나만 강하게 채워 표현합니다."
+      },
+      {
+        id: 7,
+        category: "컬러",
+        principle: "색상 수 절제와 톤 통일",
+        question: "차분한 라이프스타일 브랜드의 배너 배색으로 더 조화롭고 세련된 조합은?",
+        recommended: "B",
+        labelA: "고채도 다색 조합 (4원색)",
+        captionA: "시선이 분산되는 고채도 배색",
+        visualA: `
+          <div class="w-full h-full rounded-xl overflow-hidden flex flex-col">
+            <div class="flex-1 flex">
+              <div class="flex-1 bg-[#FF3B30]"></div>
+              <div class="flex-1 bg-[#FFCC00]"></div>
+              <div class="flex-1 bg-[#34C759]"></div>
+              <div class="flex-1 bg-[#007AFF]"></div>
+            </div>
+            <div class="p-2.5 bg-white text-xs font-bold text-center text-gray-800">SPRING LIVING COLLECTION</div>
+          </div>
+        `,
+        labelB: "저채도 뉴트럴 & 어스 톤",
+        captionB: "자연스럽게 어우러지는 톤온톤",
+        visualB: `
+          <div class="w-full h-full rounded-xl overflow-hidden flex flex-col">
+            <div class="flex-1 flex">
+              <div class="flex-1 bg-[#EAE3D5]"></div>
+              <div class="flex-1 bg-[#C9B9A6]"></div>
+              <div class="flex-1 bg-[#8C7A6B]"></div>
+              <div class="flex-1 bg-[#4A5D4E]"></div>
+            </div>
+            <div class="p-2.5 bg-white text-xs font-bold text-center text-[#1F211E]">SPRING LIVING COLLECTION</div>
+          </div>
+        `,
+        explanation: "A안은 어린이 완구나 축제 포스터에는 활기찰 수 있지만, 차분한 라이프스타일 브랜드에는 산만해 보입니다. B안은 채도를 낮춘 베이지·샌드·올리브 그린을 결합해 고급스럽고 안정적인 무드를 완성했습니다.",
+        principleDetail: "채도(Saturation) 수준을 비슷하게 맞추면 서로 다른 색상을 조합해도 하나의 가족처럼 조화를 이룹니다."
+      },
+      {
+        id: 8,
+        category: "이미지",
+        principle: "3분할 구도와 여백 활용",
+        question: "도형 일러스트 위에 제목 텍스트를 얹어야 할 때, 글자가 더 잘 읽히고 구도가 안정적인 배치는?",
+        recommended: "A",
+        labelA: "피사체 우측 배치 + 좌측 여백 확보",
+        captionA: "3분할 비대칭 구도",
+        visualA: `
+          <svg viewBox="0 0 240 130" class="w-full h-36 rounded-lg bg-[#F4F1EA]">
+            <circle cx="175" cy="65" r="36" fill="#C46D53" opacity="0.85"/>
+            <circle cx="192" cy="48" r="14" fill="#E8B4A2"/>
+            <text x="20" y="58" font-size="13" font-weight="bold" fill="#1F211E">AUTUMN</text>
+            <text x="20" y="76" font-size="13" font-weight="bold" fill="#1F211E">ARCHIVE</text>
+            <text x="20" y="94" font-size="8" fill="#666963">여백 위에 놓인 타이포그래피</text>
+          </svg>
+        `,
+        labelB: "피사체 정중앙 배치 + 글자 겹침",
+        captionB: "주제와 텍스트의 시각적 충돌",
+        visualB: `
+          <svg viewBox="0 0 240 130" class="w-full h-36 rounded-lg bg-[#F4F1EA]">
+            <circle cx="120" cy="65" r="40" fill="#C46D53" opacity="0.85"/>
+            <circle cx="138" cy="46" r="14" fill="#E8B4A2"/>
+            <text x="120" y="62" text-anchor="middle" font-size="13" font-weight="bold" fill="#1F211E">AUTUMN</text>
+            <text x="120" y="80" text-anchor="middle" font-size="13" font-weight="bold" fill="#1F211E">ARCHIVE</text>
+          </svg>
+        `,
+        explanation: "A안은 메인 오브제를 오른쪽 1/3 지점으로 이동시켜 왼쪽에 깨끗한 여백을 확보했고, 그 위에 텍스트를 배치해 이미지와 글자 모두 선명하게 살아납니다. B안은 오브제와 글자가 겹쳐 가독성과 조형미가 모두 떨어집니다.",
+        principleDetail: "텍스트가 결합되는 그래픽에서는 피사체를 한쪽으로 비켜 세워 '글자가 숨 쉴 자리'를 만들어주세요."
+      },
+      {
+        id: 9,
+        category: "레이아웃",
+        principle: "근접성의 원칙(Proximity)",
+        question: "두 개의 공지사항 항목이 서로 헷갈리지 않고 명확히 구분되어 보이는 간격 설계는?",
+        recommended: "B",
+        labelA: "동일한 간격 나열",
+        captionA: "어느 제목이 어느 본문인지 모호함",
+        visualA: `
+          <div class="w-full h-full p-4 rounded-xl bg-white flex flex-col justify-center text-left space-y-2.5">
+            <div class="text-xs font-bold text-[#1F211E]">11월 정기 휴무 안내</div>
+            <div class="text-[11px] text-[#666963]">매주 월요일은 공간 정비를 위해 쉬어갑니다.</div>
+            <div class="text-xs font-bold text-[#1F211E]">겨울 시즌 신메뉴 출시</div>
+            <div class="text-[11px] text-[#666963]">따뜻한 호지차 라떼를 만나보세요.</div>
+          </div>
+        `,
+        labelB: "그룹 내 밀착 + 그룹 간 넓은 여백",
+        captionB: "관련 정보끼리 시각적 묶음 형성",
+        visualB: `
+          <div class="w-full h-full p-4 rounded-xl bg-white flex flex-col justify-center text-left space-y-4">
+            <div class="space-y-0.5">
+              <div class="text-xs font-bold text-[#1F211E]">11월 정기 휴무 안내</div>
+              <div class="text-[11px] text-[#666963]">매주 월요일은 공간 정비를 위해 쉬어갑니다.</div>
+            </div>
+            <div class="space-y-0.5">
+              <div class="text-xs font-bold text-[#1F211E]">겨울 시즌 신메뉴 출시</div>
+              <div class="text-[11px] text-[#666963]">따뜻한 호지차 라떼를 만나보세요.</div>
+            </div>
+          </div>
+        `,
+        explanation: "A안은 모든 줄의 간격이 동일해 첫 번째 설명과 두 번째 제목이 애매하게 붙어 보입니다. B안은 제목과 본문은 바짝 붙이고(2px), 다음 공지사항과의 간격은 넓게 띄워(16px) 구분선 없이도 완벽하게 그룹을 나눴습니다.",
+        principleDetail: "그룹 내부 간격보다 그룹 외부 간격을 최소 2~3배 이상 넓게 설정하면 정보 구조가 즉시 명확해집니다."
+      },
+      {
+        id: 10,
+        category: "폰트",
+        principle: "긴 문장의 정렬 방식",
+        question: "4줄 이상의 안내 문단을 모바일 화면에서 빠르게 훑어 읽기에 더 적합한 정렬은?",
+        recommended: "A",
+        labelA: "왼쪽 정렬 (Left Aligned)",
+        captionA: "시작점이 일직선으로 고정됨",
+        visualA: `
+          <div class="w-full h-full p-4 rounded-xl bg-[#FAF9F6] flex items-center text-left">
+            <p class="text-[11px] text-[#1F211E] leading-relaxed">
+              매일 5분씩 작은 디자인 요소를 관찰하는 습관은 거창한 이론서를 한 번 읽는 것보다 훨씬 단단한 안목을 만들어 줍니다. 오늘 발견한 영감을 아카이브에 기록해 보세요.
+            </p>
+          </div>
+        `,
+        labelB: "가운데 정렬 (Center Aligned)",
+        captionB: "매 줄 시작 위치가 들쭉날쭉함",
+        visualB: `
+          <div class="w-full h-full p-4 rounded-xl bg-[#FAF9F6] flex items-center text-center">
+            <p class="text-[11px] text-[#1F211E] leading-relaxed">
+              매일 5분씩 작은 디자인 요소를 관찰하는 습관은 거창한 이론서를 한 번 읽는 것보다 훨씬 단단한 안목을 만들어 줍니다. 오늘 발견한 영감을 아카이브에 기록해 보세요.
+            </p>
+          </div>
+        `,
+        explanation: "짧은 제목이나 시적인 한 문장은 가운데 정렬이 어울리지만, 3줄이 넘어가는 설명문은 왼쪽 정렬(A안)이 훨씬 읽기 편합니다. B안은 줄이 바뀔 때마다 눈이 새로운 시작 위치를 찾아야 하므로 독서 속도가 느려집니다.",
+        principleDetail: "3줄 이상의 본문은 왼쪽 정렬을 기본 원칙으로 삼으세요."
+      },
+      {
+        id: 11,
+        category: "컬러",
+        principle: "텍스트 가독성을 위한 명도 대비",
+        question: "야외 햇빛 아래나 저시력 사용자도 무리 없이 읽을 수 있는 배지(Badge) 배색은?",
+        recommended: "B",
+        labelA: "파스텔 배경 + 연한 흰색 글씨",
+        captionA: "명도 대비가 부족한 조합",
+        visualA: `
+          <div class="w-full h-full p-4 rounded-xl bg-white flex flex-col items-center justify-center gap-3">
+            <span class="px-4 py-1.5 rounded-full bg-[#B9CBBF] text-white text-xs font-bold">TODAY'S MISSION</span>
+            <span class="text-[11px] text-gray-400">글자 외곽선이 흐릿하게 번져 보임</span>
+          </div>
+        `,
+        labelB: "파스텔 배경 + 깊은 세이지 글씨",
+        captionB: "명확한 명도 차이를 확보한 조합",
+        visualB: `
+          <div class="w-full h-full p-4 rounded-xl bg-white flex flex-col items-center justify-center gap-3">
+            <span class="px-4 py-1.5 rounded-full bg-[#E8EFEA] text-[#2F4536] text-xs font-bold">TODAY'S MISSION</span>
+            <span class="text-[11px] text-[#666963]">부드러운 배경 위 선명한 가독성</span>
+          </div>
+        `,
+        explanation: "파스텔 톤 배경 위에 흰색 글씨를 얹으면(A안) 명도 차이가 작아 글자가 배경에 파묻힙니다. B안처럼 연한 파스텔 배경(#E8EFEA)에는 같은 계열의 매우 어두운 톤(#2F4536)을 매칭해야 부드러우면서도 또렷하게 읽힙니다.",
+        principleDetail: "같은 색상 계열의 '아주 밝은 배경 + 아주 어두운 글자' 조합은 실패 없는 세련된 배지 공식입니다."
+      },
+      {
+        id: 12,
+        category: "이미지",
+        principle: "도형의 비례와 시선 유도",
+        question: "두 가지 기하학 포스터 시안 중, 안정감과 조형적 긴장감이 더 잘 어우러진 구성은?",
+        recommended: "A",
+        labelA: "대·중·소 크기 대비와 황금 위치",
+        captionA: "크기 변주와 여백의 리듬",
+        visualA: `
+          <svg viewBox="0 0 220 130" class="w-full h-36 rounded-lg bg-[#1F211E]">
+            <circle cx="72" cy="68" r="34" fill="#C46D53"/>
+            <rect x="122" y="34" width="54" height="54" rx="27" fill="#E8EFEA"/>
+            <circle cx="164" cy="96" r="10" fill="#D9A05B"/>
+          </svg>
+        `,
+        labelB: "동일 크기의 무작위 산개",
+        captionB: "크기 위계가 없는 반복",
+        visualB: `
+          <svg viewBox="0 0 220 130" class="w-full h-36 rounded-lg bg-[#1F211E]">
+            <circle cx="48" cy="42" r="20" fill="#C46D53"/>
+            <rect x="92" y="65" width="40" height="40" rx="20" fill="#E8EFEA"/>
+            <circle cx="168" cy="38" r="20" fill="#D9A05B"/>
+          </svg>
+        `,
+        explanation: "A안은 큰 원(주인공), 중간 캡슐(보조), 작은 점(포인트)으로 크기 대비를 주면서 수평 축을 맞춰 안정적인 리듬을 형성했습니다. B안은 세 도형의 지름이 모두 같아 시선이 어디에 머물러야 할지 갈피를 잡기 어렵습니다.",
+        principleDetail: "조형 요소를 배치할 때는 크기(Scale)에 대·중·소의 명확한 차이를 두어야 생동감이 생깁니다."
+      },
+      {
+        id: 13,
+        category: "디자인 분석",
+        principle: "입력 폼(Input)의 명확한 상태 인지",
+        question: "사용자가 입력창의 위치를 직관적으로 파악하고 실수 없이 작성할 수 있는 폼 디자인은?",
+        recommended: "B",
+        labelA: "라벨 생략 + 희미한 밑줄",
+        captionA: "입력 영역 경계가 모호함",
+        visualA: `
+          <div class="w-full h-full p-4 rounded-xl bg-white flex flex-col justify-center gap-3 text-left">
+            <div class="border-b border-gray-200 pb-1 text-xs text-gray-300">팔레트 이름 입력...</div>
+            <div class="border-b border-gray-200 pb-1 text-xs text-gray-300">메모 입력...</div>
+          </div>
+        `,
+        labelB: "명확한 상단 라벨 + 패딩 박스",
+        captionB: "입력 영역과 역할이 뚜렷함",
+        visualB: `
+          <div class="w-full h-full p-4 rounded-xl bg-white flex flex-col justify-center gap-2.5 text-left">
+            <div>
+              <div class="text-[10px] font-bold text-[#1F211E] mb-1">팔레트 이름</div>
+              <div class="px-2.5 py-1.5 rounded-lg bg-[#F7F5F0] border border-[#D4CFC5] text-xs text-[#666963]">예: 가을 오후의 서재</div>
+            </div>
+          </div>
+        `,
+        explanation: "A안처럼 라벨 없이 연한 플레이스홀더만 두면 입력을 시작하는 순간 무엇을 적는 칸이었는지 잊어버리기 쉽습니다. B안은 상단 라벨과 넉넉한 터치 영역 박스를 제공해 접근성과 사용성을 모두 높였습니다.",
+        principleDetail: "좋은 인터페이스 디자인은 미적 감각과 더불어 사용자의 실수를 예방하는 친절함에서 완성됩니다."
+      },
+      {
+        id: 14,
+        category: "레이아웃",
+        principle: "장식 선(Divider) 최소화",
+        question: "깔끔하고 현대적인 리스트 UI를 만들 때 더 세련된 구분 방식은?",
+        recommended: "A",
+        labelA: "은은한 배경 톤과 여백으로 구분",
+        captionA: "시각적 노이즈를 줄인 구조",
+        visualA: `
+          <div class="w-full h-full p-3.5 rounded-xl bg-[#F7F5F0] flex flex-col justify-center gap-2 text-left">
+            <div class="p-2.5 rounded-lg bg-white text-xs font-medium text-[#1F211E]">01. 컬러 감각 훈련</div>
+            <div class="p-2.5 rounded-lg bg-white text-xs font-medium text-[#1F211E]">02. 타이포그래피 관찰</div>
+          </div>
+        `,
+        labelB: "두꺼운 검은 테두리와 이중선",
+        captionB: "선이 콘텐츠보다 도드라짐",
+        visualB: `
+          <div class="w-full h-full p-3.5 rounded-xl bg-white border-2 border-black flex flex-col justify-center gap-2 text-left">
+            <div class="p-2 border-2 border-black text-xs font-bold text-black">01. 컬러 감각 훈련</div>
+            <div class="p-2 border-2 border-black text-xs font-bold text-black">02. 타이포그래피 관찰</div>
+          </div>
+        `,
+        explanation: "B안처럼 굵은 선을 반복 사용하면 내용을 담는 그릇(선)이 주인공인 글자보다 시선을 더 많이 빼앗습니다. A안처럼 연한 배경색 차이(#F7F5F0 위 #FFFFFF 카드)를 활용하면 선 없이도 깔끔하게 영역이 나뉩니다.",
+        principleDetail: "구분선을 긋기 전에 '배경 명도 차이나 여백만으로 구분할 수 없을까?'를 먼저 고민해보세요."
+      },
+      {
+        id: 15,
+        category: "폰트",
+        principle: "영문 대문자 자간(Tracking)",
+        question: "브랜드 서브 타이틀이나 카테고리 태그에 영문 대문자를 쓸 때 더 고급스러운 자간은?",
+        recommended: "B",
+        labelA: "기본 자간 (0em)",
+        captionA: "대문자끼리 빽빽하게 붙어 보임",
+        visualA: `
+          <div class="w-full h-full p-4 rounded-xl bg-[#EFECE6] flex flex-col items-center justify-center">
+            <div class="text-xs font-bold text-[#4A6352]" style="letter-spacing: 0;">AESTHETIC DAILY HABIT</div>
+            <div class="text-lg font-bold text-[#1F211E] mt-1">매일 5분 미감 쌓기</div>
+          </div>
+        `,
+        labelB: "넓은 자간 (+0.14em)",
+        captionB: "숨통이 트인 에디토리얼 느낌",
+        visualB: `
+          <div class="w-full h-full p-4 rounded-xl bg-[#EFECE6] flex flex-col items-center justify-center">
+            <div class="text-xs font-bold text-[#4A6352]" style="letter-spacing: 0.14em;">AESTHETIC DAILY HABIT</div>
+            <div class="text-lg font-bold text-[#1F211E] mt-1">매일 5분 미감 쌓기</div>
+          </div>
+        `,
+        explanation: "영문 대문자는 높이가 모두 일정해 자간이 좁으면 사각형 블록처럼 답답해 보입니다. B안처럼 자간을 넓혀주면(Tracking) 매거진 표지나 갤러리 캡션처럼 세련된 호흡이 생깁니다.",
+        principleDetail: "작은 영문 대문자 라벨에는 자간(letter-spacing)을 0.08em ~ 0.16em 정도 넓혀주세요."
+      },
+      {
+        id: 16,
+        category: "디자인 분석",
+        principle: "데이터 시각화(진행률 표시)의 직관성",
+        question: "사용자에게 주간 목표 달성률을 전달할 때 한눈에 이해되는 표현 방식은?",
+        recommended: "A",
+        labelA: "핵심 수치 강조 + 시각적 게이지",
+        captionA: "직관적인 상태 파악",
+        visualA: `
+          <div class="w-full h-full p-4 rounded-xl bg-white flex flex-col justify-center text-left space-y-2">
+            <div class="flex justify-between items-baseline">
+              <span class="text-xs font-bold text-[#1F211E]">이번 주 미감 훈련</span>
+              <span class="text-sm font-bold text-[#4A6352]">5 / 7일 (71%)</span>
+            </div>
+            <div class="w-full h-2.5 rounded-full bg-[#EFECE6] overflow-hidden">
+              <div class="h-full bg-[#4A6352] rounded-full" style="width: 71%;"></div>
+            </div>
+          </div>
+        `,
+        labelB: "긴 서술형 문장으로만 설명",
+        captionB: "숫자를 문장 속에서 찾아 읽어야 함",
+        visualB: `
+          <div class="w-full h-full p-4 rounded-xl bg-white flex items-center text-left">
+            <p class="text-xs text-[#1F211E] leading-relaxed">
+              회원님은 이번 주 총 일주일 중에서 다섯 번의 미감 미션을 완료하셨으며 전체 목표 대비 약 칠십일 퍼센트를 달성하셨습니다.
+            </p>
+          </div>
+        `,
+        explanation: "통계나 진행 상황은 긴 문장(B안)보다 핵심 숫자와 진행 막대(A안)를 결합할 때 인지 속도가 수배 빨라집니다.",
+        principleDetail: "수치 정보는 '숫자 강조 + 시각적 비율 바'로 변환해 직관적인 피드백을 제공하세요."
+      }
+    ];
+
+    /* -----------------------------------------------------------
+       3. 큐레이션 컬러 팔레트 데이터 (22종)
+       ----------------------------------------------------------- */
+    const PALETTES = [
+      {
+        id: 1,
+        name: "모닝 세이지 스튜디오 (Morning Sage)",
+        moods: ["#차분한", "#자연주의", "#에디토리얼"],
+        desc: "이른 아침 햇살이 드는 작업실의 아이보리 벽면과 싱그러운 세이지 잎, 따뜻한 테라코타 화분을 담은 균형 잡힌 배색입니다.",
+        colors: [
+          { hex: "#F7F5F0", name: "Warm Paper", role: "메인 배경 (60%) — 눈의 피로를 덜어주는 따뜻한 오프화이트" },
+          { hex: "#E3DFD7", name: "Linen Border", role: "보조 구획 (20%) — 카드 경계와 은은한 면 분할용" },
+          { hex: "#4A6352", name: "Studio Sage", role: "주조 키컬러 (12%) — 신뢰감과 안정감을 주는 메인 브랜드 컬러" },
+          { hex: "#C46D53", name: "Clay Terracotta", role: "강조 포인트 (5%) — 시선을 끄는 CTA 버튼과 배지" },
+          { hex: "#1F211E", name: "Deep Charcoal", role: "텍스트 기본 (3%) — 순수 검정보다 부드러운 고가독성 먹색" }
+        ],
+        usage: "포트폴리오 웹사이트, 뉴스레터 템플릿, 라이프스타일 브랜드의 카드뉴스에 적용하면 신뢰감 있고 감각적인 인상을 줍니다."
+      },
+      {
+        id: 2,
+        name: "교토 말차와 삼나무 (Kyoto Matcha)",
+        moods: ["#정갈한", "#동양적", "#깊이있는"],
+        desc: "고즈넉한 다실의 다다미와 진한 말차 거품, 오래된 목재 가구의 온기를 담은 차분한 어스(Earth) 팔레트입니다.",
+        colors: [
+          { hex: "#F2EFE9", name: "Rice Paper", role: "메인 배경 (60%) — 한지처럼 포근한 미색 배경" },
+          { hex: "#C8C2B6", name: "Tatami Mist", role: "보조 톤 (20%) — 서브 섹션 및 비활성 요소" },
+          { hex: "#3B5241", name: "Deep Matcha", role: "주조 키컬러 (12%) — 무게 중심을 잡아주는 짙은 녹차색" },
+          { hex: "#8C5E3C", name: "Cedar Wood", role: "강조 포인트 (5%) — 따뜻한 나무 질감의 포인트" },
+          { hex: "#232622", name: "Sumi Ink", role: "텍스트 기본 (3%) — 먹물처럼 단단한 본문 컬러" }
+        ],
+        usage: "찻집·카페 브랜딩, 에세이 북커버, 차분한 기록용 노션/블로그 커버 이미지에 이상적입니다."
+      },
+      {
+        id: 3,
+        name: "코펜하겐 미스트 (Copenhagen Mist)",
+        moods: ["#북유럽", "#미니멀", "#지적인"],
+        desc: "흐린 날 북유럽 해안의 차가운 안개와 슬레이트 돌, 은은한 더스티 블루가 어우러진 모던하고 절제된 배색입니다.",
+        colors: [
+          { hex: "#F4F6F8", name: "Nordic Fog", role: "메인 배경 (60%) — 깨끗하고 시원한 쿨 화이트" },
+          { hex: "#D5DCE2", name: "Pebble Grey", role: "보조 톤 (20%) — 정돈된 그리드와 카드 배경" },
+          { hex: "#4D6A7E", name: "Fjord Blue", role: "주조 키컬러 (12%) — 차분한 지성을 상징하는 스틸 블루" },
+          { hex: "#B87A68", name: "Muted Brick", role: "강조 포인트 (5%) — 차가운 블루에 온기를 불어넣는 보색 포인트" },
+          { hex: "#1E252B", name: "Midnight Slate", role: "텍스트 기본 (3%) — 푸른 기운이 감도는 짙은 차콜" }
+        ],
+        usage: "IT 프로덕트 소개서, 건축·인테리어 포트폴리오, 깔끔한 대시보드 UI에 추천합니다."
+      },
+      {
+        id: 4,
+        name: "늦오후의 무화과 (Late Afternoon Fig)",
+        moods: ["#우아한", "#감성적", "#빈티지"],
+        desc: "해 질 녘 햇살을 받은 잘 익은 무화과의 보랏빛 과육과 크림 치즈, 로즈 골드 빛을 닮은 우아한 배색입니다.",
+        colors: [
+          { hex: "#FAF6F3", name: "Mascarpone", role: "메인 배경 (60%) — 부드러운 크림 아이보리" },
+          { hex: "#E6D8D3", name: "Blush Clay", role: "보조 톤 (20%) — 은은한 로즈 베이지" },
+          { hex: "#6B4453", name: "Ripe Fig", role: "주조 키컬러 (12%) — 기품 있는 딥 플럼 버건디" },
+          { hex: "#C78B6B", name: "Amber Honey", role: "강조 포인트 (5%) — 따뜻한 꿀빛 강조색" },
+          { hex: "#2A1F24", name: "Espresso Plum", role: "텍스트 기본 (3%) — 깊은 자줏빛 다크 브라운" }
+        ],
+        usage: "뷰티·향수 브랜딩, 청첩장, 감성적인 유튜브 썸네일 및 인스타그램 피드 톤앤매너에 잘 어울립니다."
+      },
+      {
+        id: 5,
+        name: "사막의 모래언덕 (Dune & Ochre)",
+        moods: ["#따뜻한", "#유기적", "#휴식"],
+        desc: "바람이 빚은 모래언덕의 부드러운 곡선과 황토빛 오커, 올리브 잎사귀가 만들어내는 포근한 내추럴 팔레트입니다.",
+        colors: [
+          { hex: "#F6F1E7", name: "Warm Sand", role: "메인 배경 (60%) — 햇살 머금은 모래색" },
+          { hex: "#DFD3BE", name: "Dune Beige", role: "보조 톤 (20%) — 자연스러운 톤온톤 카드 배경" },
+          { hex: "#B57B45", name: "Golden Ochre", role: "주조 키컬러 (12%) — 깊이 있는 황토·카라멜 컬러" },
+          { hex: "#5C6B54", name: "Desert Olive", role: "강조 포인트 (5%) — 시각적 균형을 잡는 올리브 그린" },
+          { hex: "#2B241D", name: "Roasted Bean", role: "텍스트 기본 (3%) — 따뜻한 다크 브라운 텍스트" }
+        ],
+        usage: "베이커리·로스터리 카페, 친환경 리빙 브랜드, 가을·겨울 시즌 프로모션 디자인에 활용해보세요."
+      },
+      {
+        id: 6,
+        name: "서울의 새벽 한강 (Seoul Dawn)",
+        moods: ["#도시적", "#고요한", "#현대적"],
+        desc: "동트기 직전 한강의 잔잔한 물결빛과 콘크리트 교각의 회색, 수평선 너머의 여명 핑크를 담은 도시적 배색입니다.",
+        colors: [
+          { hex: "#F2F3F5", name: "Concrete Mist", role: "메인 배경 (60%) — 도시적인 라이트 그레이" },
+          { hex: "#D1D5DB", name: "Bridge Stone", role: "보조 톤 (20%) — 깔끔한 구조적 라인과 박스" },
+          { hex: "#37475A", name: "River Navy", role: "주조 키컬러 (12%) — 깊이 있는 새벽 강물색" },
+          { hex: "#D98A7C", name: "Dawn Coral", role: "강조 포인트 (5%) — 새벽 하늘의 은은한 코랄 핑크" },
+          { hex: "#181C20", name: "Asphalt Ink", role: "텍스트 기본 (3%) — 선명하고 단정한 다크 그레이" }
+        ],
+        usage: "매거진 아티클, 도시 문화 콘텐츠, 프레젠테이션 슬라이드 템플릿에 매우 세련되게 적용됩니다."
+      },
+      {
+        id: 7,
+        name: "시칠리아 레몬 테라스 (Sicily Terrace)",
+        moods: ["#산뜻한", "#경쾌한", "#지중해"],
+        desc: "눈부신 지중해 햇살 아래 레몬 나무의 생기와 하얀 석회암 테라스, 코발트 바다의 청량함을 절제된 채도로 담았습니다.",
+        colors: [
+          { hex: "#FAF9F2", name: "Limestone White", role: "메인 배경 (60%) — 밝고 깨끗한 석회암 아이보리" },
+          { hex: "#EBE6D5", name: "Straw Linen", role: "보조 톤 (20%) — 밀짚모자처럼 가벼운 베이지" },
+          { hex: "#355C7D", name: "Aegean Blue", role: "주조 키컬러 (12%) — 차분한 지중해 블루" },
+          { hex: "#D9B44A", name: "Sunlit Lemon", role: "강조 포인트 (5%) — 쨍하지 않고 고급스러운 머스타드 레몬" },
+          { hex: "#222930", name: "Harbor Charcoal", role: "텍스트 기본 (3%) — 안정감 있는 네이비 차콜" }
+        ],
+        usage: "여름 시즌 에디토리얼, 여행 기록 블로그, 산뜻한 뉴스레터 헤더 디자인에 활력을 더해줍니다."
+      },
+      {
+        id: 8,
+        name: "고전 서재의 잉크 (Classic Library)",
+        moods: ["#클래식", "#학구적", "#중후한"],
+        desc: "오래된 양장본 책의 바랜 페이지와 만년필의 블루블랙 잉크, 황동 책갈피의 묵직한 품격을 담은 배색입니다.",
+        colors: [
+          { hex: "#F5F0E6", name: "Antique Page", role: "메인 배경 (60%) — 눈이 편안한 고서적 페이지 컬러" },
+          { hex: "#DDD4C4", name: "Parchment", role: "보조 톤 (20%) — 양피지 느낌의 인용구 박스 배경" },
+          { hex: "#263849", name: "Fountain Ink", role: "주조 키컬러 (12%) — 클래식한 블루블랙 잉크" },
+          { hex: "#A67C52", name: "Brass Bookmark", role: "강조 포인트 (5%) — 은은하게 빛나는 황동 브론즈" },
+          { hex: "#1C1B19", name: "Typewriter Black", role: "텍스트 기본 (3%) — 타자기 활자 같은 깊은 먹색" }
+        ],
+        usage: "독서 기록 아카이브, 인문학 콘텐츠, 법무·컨설팅 등 신뢰와 전문성이 중요한 브랜드에 적합합니다."
+      },
+      {
+        id: 9,
+        name: "이끼 낀 숲속 오솔길 (Mossy Trail)",
+        moods: ["#싱그러운", "#치유", "#보태니컬"],
+        desc: "비 온 뒤 촉촉하게 젖은 숲속의 이끼와 고사리 잎, 짙은 흙내음을 시각적으로 풀어낸 보태니컬 팔레트입니다.",
+        colors: [
+          { hex: "#F4F6F1", name: "Morning Dew", role: "메인 배경 (60%) — 이슬처럼 맑은 연그린 화이트" },
+          { hex: "#DCE2D5", name: "Fern Mist", role: "보조 톤 (20%) — 부드러운 세이지 틴트" },
+          { hex: "#526E48", name: "Forest Moss", role: "주조 키컬러 (12%) — 생명력 넘치는 이끼 그린" },
+          { hex: "#9E6B4B", name: "Wet Bark", role: "강조 포인트 (5%) — 나무껍질의 따뜻한 브라운" },
+          { hex: "#1D241B", name: "Deep Pine", role: "텍스트 기본 (3%) — 소나무 그림자 같은 다크 그린" }
+        ],
+        usage: "웰니스·명상 앱, 플랜테리어 쇼핑몰, 환경·지속가능성 리포트 디자인에 추천합니다."
+      },
+      {
+        id: 10,
+        name: "도자기 가마의 유약 (Celadon Glaze)",
+        moods: ["#단아한", "#공예적", "#청아한"],
+        desc: "고려청자의 비취빛 유약과 백자의 순백, 가마 속 잿빛 재의 미묘한 색감을 현대적으로 재해석한 배색입니다.",
+        colors: [
+          { hex: "#F5F7F6", name: "Porcelain White", role: "메인 배경 (60%) — 백자처럼 맑고 단아한 배경" },
+          { hex: "#DCE4E1", name: "Ash Glaze", role: "보조 톤 (20%) — 은은한 회청빛 여백" },
+          { hex: "#5E837B", name: "Celadon Jade", role: "주조 키컬러 (12%) — 고요하고 기품 있는 비취색" },
+          { hex: "#B8866B", name: "Kiln Terracotta", role: "강조 포인트 (5%) — 흙의 온기를 전하는 테라코타" },
+          { hex: "#212927", name: "Iron Oxide", role: "텍스트 기본 (3%) — 단정하고 선명한 다크 그레이" }
+        ],
+        usage: "공예·아트 갤러리, 티 브랜드, 미니멀한 패키지 디자인에 독보적인 분위기를 연출합니다."
+      },
+      {
+        id: 11,
+        name: "파리의 비 오는 오후 (Rainy Paris)",
+        moods: ["#모던", "#시크", "#절제미"],
+        desc: "비에 젖은 파리의 회색 지붕과 카페 테라스의 버건디 어닝, 따뜻한 가로등 불빛을 담은 시크한 배색입니다.",
+        colors: [
+          { hex: "#F3F2F0", name: "Parisian Stone", role: "메인 배경 (60%) — 석회암 건물의 밝은 웜그레이" },
+          { hex: "#D6D3CE", name: "Zinc Roof", role: "보조 톤 (20%) — 차분한 아연 지붕 회색" },
+          { hex: "#383A3D", name: "Charcoal Coat", role: "주조 키컬러 (12%) — 도시적이고 세련된 짙은 회색" },
+          { hex: "#9E4747", name: "Bistro Awning", role: "강조 포인트 (5%) — 감각적인 포인트가 되는 딥 레드" },
+          { hex: "#191A1C", name: "Noir Ink", role: "텍스트 기본 (3%) — 명쾌한 가독성의 블랙 차콜" }
+        ],
+        usage: "패션 룩북, 사진 포트폴리오, 미니멀한 에디토리얼 웹진에 시크한 매력을 더해줍니다."
+      },
+      {
+        id: 12,
+        name: "살구빛 노을과 라벤더 (Apricot Dusk)",
+        moods: ["#몽환적", "#부드러운", "#크리에이티브"],
+        desc: "해가 진 직후 하늘에 번지는 살구빛 잔광과 보랏빛 황혼의 경계를 부드러운 파스텔 톤으로 포착했습니다.",
+        colors: [
+          { hex: "#FAF5F2", name: "Soft Peach", role: "메인 배경 (60%) — 포근한 살구빛 화이트" },
+          { hex: "#E8DFE8", name: "Dusk Lavender", role: "보조 톤 (20%) — 몽환적인 연보라 카드 배경" },
+          { hex: "#6A5B7B", name: "Twilight Plum", role: "주조 키컬러 (12%) — 차분하게 가라앉은 황혼 보라" },
+          { hex: "#D9825B", name: "Sunset Apricot", role: "강조 포인트 (5%) — 생기를 불어넣는 살구 코랄" },
+          { hex: "#26212B", name: "Night Violet", role: "텍스트 기본 (3%) — 부드러운 다크 바이올렛" }
+        ],
+        usage: "크리에이티브 스튜디오, 음악 플레이리스트 커버, 감성 일기 앱 UI에 잘 어울립니다."
+      },
+      {
+        id: 13,
+        name: "오트밀과 에스프레소 (Oatmeal Latte)",
+        moods: ["#포근한", "#일상적", "#안정감"],
+        desc: "매일 아침 마시는 고소한 오트 라떼처럼 질리지 않고 누구나 편안하게 받아들이는 웜 뉴트럴 배색입니다.",
+        colors: [
+          { hex: "#F8F5F0", name: "Steamed Milk", role: "메인 배경 (60%) — 부드러운 우유 거품 화이트" },
+          { hex: "#E5DDD0", name: "Oatmeal", role: "보조 톤 (20%) — 따뜻한 오트밀 베이지" },
+          { hex: "#7A5C43", name: "Crema Brown", role: "주조 키컬러 (12%) — 고소한 에스프레소 크레마" },
+          { hex: "#5C7362", name: "Herb Garnish", role: "강조 포인트 (5%) — 깔끔한 대비를 주는 허브 그린" },
+          { hex: "#29221C", name: "Dark Roast", role: "텍스트 기본 (3%) — 깊은 로스팅 원두 컬러" }
+        ],
+        usage: "데일리 블로그, 카페 메뉴판, 라이프스타일 커머스 상세페이지에 가장 활용도가 높은 배색입니다."
+      },
+      {
+        id: 14,
+        name: "바우하우스 프라이머리 (Muted Bauhaus)",
+        moods: ["#기하학적", "#구조적", "#모던아트"],
+        desc: "바우하우스의 삼원색(빨강·파랑·노랑)을 현대적인 에디토리얼 톤으로 살짝 톤 다운시켜 세련되게 다듬은 배색입니다.",
+        colors: [
+          { hex: "#F5F3EE", name: "Gallery Wall", role: "메인 배경 (60%) — 미술관 벽면의 오프화이트" },
+          { hex: "#E2DFD7", name: "Drafting Paper", role: "보조 톤 (20%) — 제도용지 느낌의 라이트 그레이" },
+          { hex: "#2B4C7E", name: "Bauhaus Blue", role: "주조 키컬러 (12%) — 구조적이고 단단한 프러시안 블루" },
+          { hex: "#C84B31", name: "Signal Vermilion", role: "강조 포인트 (5%) — 명쾌한 주홍빛 레드" },
+          { hex: "#1B1B1B", name: "Gropius Black", role: "텍스트 기본 (3%) — 조형적인 딥 블랙" }
+        ],
+        usage: "전시 포스터, 디자인 스튜디오 웹사이트, 시각적 위계가 뚜렷한 발표 자료에 추천합니다."
+      },
+      {
+        id: 15,
+        name: "겨울 목화와 시나몬 (Winter Cotton)",
+        moods: ["#아늑한", "#계절감", "#따스함"],
+        desc: "포근한 목화솜의 순백과 따뜻한 시나몬 스틱, 짙은 유칼립투스 잎이 어우러진 겨울 감성 팔레트입니다.",
+        colors: [
+          { hex: "#F9F7F4", name: "Cotton Fluff", role: "메인 배경 (60%) — 포근한 목화 화이트" },
+          { hex: "#E6DFD5", name: "Wool Cashmere", role: "보조 톤 (20%) — 캐시미어 니트처럼 부드러운 톤" },
+          { hex: "#9C5A3C", name: "Cinnamon Stick", role: "주조 키컬러 (12%) — 온기를 전하는 시나몬 브라운" },
+          { hex: "#4D6358", name: "Eucalyptus", role: "강조 포인트 (5%) — 차분하게 균형을 잡는 유칼립투스" },
+          { hex: "#24201E", name: "Hearth Charcoal", role: "텍스트 기본 (3%) — 벽난로 숯빛 다크 브라운" }
+        ],
+        usage: "연말 감사 카드, 홀리데이 기획전, 따뜻한 감성의 에세이 콘텐츠에 제격입니다."
+      },
+      {
+        id: 16,
+        name: "제주 현무암과 유채 (Jeju Basalt)",
+        moods: ["#자연대비", "#단단한", "#생동감"],
+        desc: "거칠고 단단한 제주 현무암의 짙은 회색 위에 봄바람에 흔들리는 유채꽃의 노란빛을 포인트로 얹은 배색입니다.",
+        colors: [
+          { hex: "#F4F4F2", name: "Sea Foam", role: "메인 배경 (60%) — 파도 거품처럼 깨끗한 배경" },
+          { hex: "#D6D7D2", name: "Volcanic Ash", role: "보조 톤 (20%) — 화산재 느낌의 뉴트럴 그레이" },
+          { hex: "#3A3D3B", name: "Basalt Stone", role: "주조 키컬러 (12%) — 묵직하게 중심을 잡는 현무암색" },
+          { hex: "#D9A83B", name: "Canola Blossom", role: "강조 포인트 (5%) — 화사한 에너지를 주는 유채 옐로우" },
+          { hex: "#1C1E1D", name: "Deep Lava", role: "텍스트 기본 (3%) — 선명한 가독성의 다크 스톤" }
+        ],
+        usage: "로컬 브랜드, 아웃도어·여행 콘텐츠, 어두운 무채색에 포인트 컬러 하나를 살리고 싶을 때 유용합니다."
+      },
+      {
+        id: 17,
+        name: "북유럽 자작나무 숲 (Birch Forest)",
+        moods: ["#맑은", "#투명한", "#정돈된"],
+        desc: "하얀 자작나무 줄기와 연한 연둣빛 새순, 맑은 호수의 수면을 닮은 투명하고 가벼운 배색입니다.",
+        colors: [
+          { hex: "#F7F9F7", name: "Birch Bark", role: "메인 배경 (60%) — 자작나무 껍질처럼 맑은 화이트" },
+          { hex: "#E1E8E2", name: "Silver Leaf", role: "보조 톤 (20%) — 은빛 나뭇잎을 닮은 연그린" },
+          { hex: "#5B7B7A", name: "Glacier Lake", role: "주조 키컬러 (12%) — 차분하고 맑은 청록빛 블루" },
+          { hex: "#C28B6E", name: "Pine Cone", role: "강조 포인트 (5%) — 자연스러운 솔방울 브라운" },
+          { hex: "#1F2625", name: "Forest Shadow", role: "텍스트 기본 (3%) — 깔끔한 다크 슬레이트" }
+        ],
+        usage: "클린 뷰티, 헬스케어·수면 케어 서비스, 깔끔한 정보 전달형 웹사이트에 추천합니다."
+      },
+      {
+        id: 18,
+        name: "밀라노 테라조 타일 (Milan Terrazzo)",
+        moods: ["#감각적", "#아티스틱", "#트렌디"],
+        desc: "이탈리아 테라조 대리석 바닥에 박힌 다채로운 돌조각처럼 세련되고 위트 있는 컬러 조화를 보여줍니다.",
+        colors: [
+          { hex: "#F6F3EE", name: "Marble Base", role: "메인 배경 (60%) — 대리석 바탕의 크림 화이트" },
+          { hex: "#E5DDD3", name: "Travertine", role: "보조 톤 (20%) — 트래버틴 석재의 따뜻한 베이지" },
+          { hex: "#4E6E65", name: "Verde Alpi", role: "주조 키컬러 (12%) — 이탈리아 그린 대리석 컬러" },
+          { hex: "#D47A5E", name: "Rosso Verona", role: "강조 포인트 (5%) — 붉은 대리석 조각 포인트" },
+          { hex: "#232220", name: "Nero Marquina", role: "텍스트 기본 (3%) — 블랙 대리석 텍스트 컬러" }
+        ],
+        usage: "편집숍 브랜딩, 공간 디자인 스튜디오, 감각적인 이벤트 포스터에 활용하면 좋습니다."
+      },
+      {
+        id: 19,
+        name: "호지차와 흑임자 (Roasted Hojicha)",
+        moods: ["#고소한", "#모노톤", "#차분한"],
+        desc: "볶은 녹차잎의 깊은 갈색과 흑임자의 부드러운 먹색 그라데이션이 만들어내는 절제된 모노크롬 배색입니다.",
+        colors: [
+          { hex: "#F5F3EF", name: "Soy Milk", role: "메인 배경 (60%) — 부드러운 두유빛 배경" },
+          { hex: "#DCD7CE", name: "Sesame Cream", role: "보조 톤 (20%) — 흑임자 크림 톤의 카드 영역" },
+          { hex: "#6E5644", name: "Hojicha Roast", role: "주조 키컬러 (12%) — 깊이 있게 우러난 호지차 브라운" },
+          { hex: "#8C857B", name: "Warm Pebble", role: "강조 포인트 (5%) — 차분한 웜그레이 보조 액센트" },
+          { hex: "#211F1D", name: "Black Sesame", role: "텍스트 기본 (3%) — 고소하고 단단한 다크 차콜" }
+        ],
+        usage: "미니멀리스트 포트폴리오, 건축 사진집, 화려한 색을 배제한 절제된 디자인에 완벽합니다."
+      },
+      {
+        id: 20,
+        name: "봄날의 수채화 정원 (Watercolor Garden)",
+        moods: ["#화사한", "#부드러운", "#친근한"],
+        desc: "수채화 물감이 종이 위에 번지듯 맑은 핑크와 세이지 그린, 하늘빛이 조화롭게 어우러진 다정한 배색입니다.",
+        colors: [
+          { hex: "#FAF8F5", name: "Cold Press Paper", role: "메인 배경 (60%) — 수채화지처럼 깨끗한 오프화이트" },
+          { hex: "#E9EFEA", name: "Spring Sprout", role: "보조 톤 (20%) — 연한 새싹 그린 배경" },
+          { hex: "#597A64", name: "Garden Leaf", role: "주조 키컬러 (12%) — 싱그러운 정원 잎사귀" },
+          { hex: "#D67D78", name: "Peony Petal", role: "강조 포인트 (5%) — 작약 꽃잎의 화사한 코랄 핑크" },
+          { hex: "#242925", name: "Stem Charcoal", role: "텍스트 기본 (3%) — 차분하고 읽기 편한 먹색" }
+        ],
+        usage: "플라워 숍, 취미 클래스 플랫폼, 친근하고 따뜻한 온보딩 화면에 추천합니다."
+      },
+      {
+        id: 21,
+        name: "미드센추리 모던 (Mid-Century Studio)",
+        moods: ["#레트로", "#감각적", "#균형미"],
+        desc: "1950년대 미드센추리 가구의 티크 우드와 머스타드 패브릭, 틸 그린 소품이 어우러진 아이코닉한 배색입니다.",
+        colors: [
+          { hex: "#F5F1E8", name: "Warm Plaster", role: "메인 배경 (60%) — 따뜻한 회반죽 아이보리" },
+          { hex: "#E2D9C8", name: "Birch Plywood", role: "보조 톤 (20%) — 자작나무 합판의 내추럴 톤" },
+          { hex: "#2F5D62", name: "Retro Teal", role: "주조 키컬러 (12%) — 깊이 있는 미드센추리 청록색" },
+          { hex: "#C88A3B", name: "Teak Mustard", role: "강조 포인트 (5%) — 티크 원목과 어우러지는 머스타드" },
+          { hex: "#23201D", name: "Walnut Ink", role: "텍스트 기본 (3%) — 월넛 원목처럼 짙은 다크 브라운" }
+        ],
+        usage: "가구·인테리어 브랜드, LP·음악 관련 콘텐츠, 개성 있는 크리에이터 웹사이트에 잘 어울립니다."
+      },
+      {
+        id: 22,
+        name: "밤하늘의 천문대 (Observatory Night)",
+        moods: ["#깊이있는", "#신비로운", "#집중"],
+        desc: "맑은 밤하늘의 깊은 남색과 은하수의 은빛, 별빛을 닮은 샴페인 골드가 어우러진 차분한 배색입니다.",
+        colors: [
+          { hex: "#F2F4F7", name: "Starlight Mist", role: "메인 배경 (60%) — 별빛이 스민 쿨 오프화이트" },
+          { hex: "#D8DEE6", name: "Silver Horizon", role: "보조 톤 (20%) — 은은한 실버 블루 구획" },
+          { hex: "#26364D", name: "Observatory Navy", role: "주조 키컬러 (12%) — 깊은 밤하늘의 미드나잇 네이비" },
+          { hex: "#C49A5B", name: "Champagne Star", role: "강조 포인트 (5%) — 우아하게 빛나는 샴페인 골드" },
+          { hex: "#161D26", name: "Cosmos Dark", role: "텍스트 기본 (3%) — 선명한 대비를 주는 딥 네이비 블랙" }
+        ],
+        usage: "야간 러닝·명상 콘텐츠, 천문·과학 에디토리얼, 격식 있는 초대장 디자인에 추천합니다."
+      }
+    ];
+
+    /* -----------------------------------------------------------
+       4. 상태 관리 및 localStorage 유틸리티
+       ----------------------------------------------------------- */
+    const STORAGE_KEY = "mood_daily_state_v1";
+    let storageAvailable = true;
+
+    // 기본 앱 상태 구조
+    let appState = {
+      completedDates: {}, // { "2026-11-13": { missionId: 1, category: "컬러 감각", title: "..." } }
+      archive: [],        // [{ id, type, title, subtitle, content, colors, date, tag }]
+      quizAnswers: {}     // { quizId: "A" | "B" }
+    };
+
+    // 런타임 UI 상태
+    let currentTab = "dashboard";
+    let todayDateStr = "";
+    let todayMissionIndex = 0;
+    let activeMissionIndex = 0;
+    let isCustomMissionMode = false;
+    let currentQuizIndex = 0;
+    let filteredQuizList = [...QUIZZES];
+    let todayPaletteIndex = 0;
+    let activePaletteIndex = 0;
+    let archiveFilter = "ALL";
+
+    // 기기 로컬 날짜 YYYY-MM-DD 반환
+    function getLocalDateString(dateObj = new Date()) {
+      const y = dateObj.getFullYear();
+      const m = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const d = String(dateObj.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+
+    // 한국어 날짜 포맷 (예: 2026년 11월 13일 금요일)
+    function formatKoreanDate(dateObj = new Date()) {
+      const days = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
+      return `${dateObj.getFullYear()}년 ${dateObj.getMonth() + 1}월 ${dateObj.getDate()}일 ${days[dateObj.getDay()]}`;
+    }
+
+    // 날짜 기반 결정론적 일수 인덱스 계산 (같은 날짜에는 항상 동일한 번호, 날짜가 바뀌면 +1)
+    function getDayEpochIndex(dateObj = new Date()) {
+      const utcMidnight = Date.UTC(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
+      const baseEpoch = Date.UTC(2026, 0, 1); // 2026-01-01 기준
+      const diffDays = Math.floor((utcMidnight - baseEpoch) / (1000 * 60 * 60 * 24));
+      return Math.abs(diffDays);
+    }
+
+    // localStorage 안전 로드
+    function loadState() {
+      try {
+        const testKey = "__mood_test__";
+        window.localStorage.setItem(testKey, "1");
+        window.localStorage.removeItem(testKey);
+        storageAvailable = true;
+
+        const raw = window.localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          appState = {
+            completedDates: parsed.completedDates || {},
+            archive: Array.isArray(parsed.archive) ? parsed.archive : [],
+            quizAnswers: parsed.quizAnswers || {}
+          };
+        }
+      } catch (e) {
+        storageAvailable = false;
+        const banner = document.getElementById("storage-warning-banner");
+        if (banner) banner.classList.remove("hidden");
+      }
+    }
+
+    // localStorage 안전 저장
+    function saveState() {
+      if (!storageAvailable) return;
+      try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+      } catch (e) {
+        showToast("브라우저 저장 공간이 부족해 일부 기록이 저장되지 않았습니다.", "error");
+      }
+    }
+
+    // 토스트 알림 표시
+    function showToast(message, type = "success") {
+      const container = document.getElementById("toast-container");
+      const toast = document.createElement("div");
+      const bgClass = type === "error" ? "bg-terracotta text-white" : "bg-ink text-white";
+      toast.className = `toast-msg ${bgClass} px-4 py-3 rounded-xl shadow-lg text-xs sm:text-sm font-medium flex items-center justify-between gap-3`;
+      toast.innerHTML = `<span>${message}</span>`;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.opacity = "0";
+        toast.style.transform = "translateY(8px)";
+        toast.style.transition = "all 0.25s ease";
+        setTimeout(() => toast.remove(), 260);
+      }, 2600);
+    }
+
+    // 클립보드 복사 (execCommand 우선 폴백으로 iFrame/오프라인 완벽 대응)
+    function copyTextToClipboard(text, successMsg = "클립보드에 복사되었습니다.") {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      try {
+        const ok = document.execCommand("copy");
+        if (ok) {
+          showToast(successMsg);
+        } else if (navigator.clipboard) {
+          navigator.clipboard.writeText(text).then(() => showToast(successMsg));
+        }
+      } catch (err) {
+        showToast("복사에 실패했습니다. 직접 선택해 복사해주세요.", "error");
+      }
+      document.body.removeChild(textarea);
+    }
+
+    /* -----------------------------------------------------------
+       5. 통계 계산 로직 (연속 일수 Streak, 이번 주 완료 일수, 분야 분포)
+       ----------------------------------------------------------- */
+    function getThisWeekDates() {
+      const now = new Date();
+      const dayOfWeek = now.getDay(); // 0(일) ~ 6(토)
+      const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diffToMonday);
+
+      const weekList = [];
+      const labels = ["월", "화", "수", "목", "금", "토", "일"];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
+        const dateStr = getLocalDateString(d);
+        weekList.push({
+          dateStr,
+          dayNum: d.getDate(),
+          label: labels[i],
+          isToday: dateStr === todayDateStr,
+          completed: Boolean(appState.completedDates[dateStr])
+        });
+      }
+      return weekList;
+    }
+
+    function calculateStreak() {
+      let streak = 0;
+      const now = new Date();
+      // 오늘 완료했으면 오늘부터 역산, 아직 안 했으면 어제부터 역산해 유지 중인 스트릭 계산
+      let offset = appState.completedDates[todayDateStr] ? 0 : 1;
+
+      while (true) {
+        const target = new Date(now.getFullYear(), now.getMonth(), now.getDate() - offset);
+        const key = getLocalDateString(target);
+        if (appState.completedDates[key]) {
+          streak++;
+          offset++;
+        } else {
+          break;
+        }
+      }
+      return streak;
+    }
+
+    /* -----------------------------------------------------------
+       6. 탭 전환 및 화면 렌더링
+       ----------------------------------------------------------- */
+    function switchTab(tabName) {
+      currentTab = tabName;
+      const sections = ["dashboard", "mission", "quiz", "color", "archive", "report"];
+      sections.forEach(sec => {
+        const el = document.getElementById(`view-${sec}`);
+        if (el) {
+          el.classList.toggle("hidden", sec !== tabName);
+        }
+      });
+
+      // 데스크톱 내비게이션 활성 상태 업데이트
+      document.querySelectorAll(".nav-btn").forEach(btn => {
+        const isActive = btn.dataset.nav === tabName;
+        btn.className = isActive
+          ? "nav-btn px-4 py-1.5 rounded-full text-sm font-semibold bg-white text-ink shadow-xs transition-all"
+          : "nav-btn px-4 py-1.5 rounded-full text-sm font-medium text-muted hover:text-ink transition-all";
+      });
+
+      // 모바일 하단 내비게이션 활성 상태 업데이트
+      document.querySelectorAll(".mob-nav-btn").forEach(btn => {
+        const isActive = btn.dataset.nav === tabName;
+        btn.className = isActive
+          ? "mob-nav-btn flex flex-col items-center py-1 px-2 rounded-lg text-[10px] font-bold text-sage bg-sageLight/60"
+          : "mob-nav-btn flex flex-col items-center py-1 px-2 rounded-lg text-[10px] font-medium text-muted";
+      });
+
+      // 탭 진입 시 최신 데이터 반영
+      if (tabName === "dashboard") renderDashboard();
+      if (tabName === "mission") renderMissionView();
+      if (tabName === "quiz") renderQuizView();
+      if (tabName === "color") renderColorLab();
+      if (tabName === "archive") renderArchive();
+      if (tabName === "report") renderReport();
+
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    /* -----------------------------------------------------------
+       7. 메인 대시보드 렌더링
+       ----------------------------------------------------------- */
+    function renderDashboard() {
+      const now = new Date();
+      const dayEpoch = getDayEpochIndex(now);
+      const todayMission = MISSIONS[todayMissionIndex];
+      const todayPalette = PALETTES[todayPaletteIndex];
+      const isTodayDone = Boolean(appState.completedDates[todayDateStr]);
+      const weekDates = getThisWeekDates();
+      const weekDoneCount = weekDates.filter(d => d.completed).length;
+      const streak = calculateStreak();
+
+      // 헤더 & 배너 정보
+      document.getElementById("header-date-badge").textContent = `${now.getFullYear()}. ${String(now.getMonth() + 1).padStart(2, "0")}. ${String(now.getDate()).padStart(2, "0")}`;
+      document.getElementById("header-streak-count").textContent = `${streak}일 연속`;
+      document.getElementById("dash-today-full").textContent = formatKoreanDate(now);
+      document.getElementById("dash-day-cycle").textContent = `Day #${(dayEpoch % MISSIONS.length) + 1}`;
+
+      // 진행 상황 요약
+      const statusEl = document.getElementById("dash-today-status");
+      statusEl.textContent = isTodayDone ? "완료 ✓" : "진행 전";
+      statusEl.className = isTodayDone ? "mt-1 text-sm font-bold text-sage" : "mt-1 text-sm font-bold text-terracotta";
+      document.getElementById("dash-week-days").textContent = `${weekDoneCount} / 7일`;
+      document.getElementById("dash-archive-count").textContent = `${appState.archive.length}개`;
+
+      // 오늘의 미션 요약 카드
+      document.getElementById("dash-mission-category").textContent = todayMission.category;
+      document.getElementById("dash-mission-level").textContent = todayMission.level;
+      document.getElementById("dash-mission-num").textContent = `MISSION #${String(todayMission.id).padStart(2, "0")}`;
+      document.getElementById("dash-mission-title").textContent = todayMission.title;
+      document.getElementById("dash-mission-desc").textContent = todayMission.intro;
+
+      const checkBadge = document.getElementById("dash-mission-check-badge");
+      const ctaText = document.getElementById("dash-mission-cta-text");
+      if (isTodayDone) {
+        checkBadge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-sage inline-block"></span><span class="text-sage font-semibold">오늘의 미션을 완료했습니다!</span>`;
+        ctaText.textContent = "해설 및 메모 보기";
+      } else {
+        checkBadge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-terracotta inline-block"></span><span>아직 완료하지 않았어요</span>`;
+        ctaText.textContent = "미션 시작하기";
+      }
+
+      // 오늘의 컬러 요약 카드
+      document.getElementById("dash-palette-mood").textContent = todayPalette.moods.join(" ");
+      document.getElementById("dash-palette-name").textContent = todayPalette.name;
+      document.getElementById("dash-palette-desc").textContent = todayPalette.desc;
+
+      const swatchBox = document.getElementById("dash-palette-swatches");
+      swatchBox.innerHTML = todayPalette.colors.map(c =>
+        `<div class="flex-1 h-full" style="background-color: ${c.hex};" title="${c.name} (${c.hex})"></div>`
+      ).join("");
+
+      const hexBox = document.getElementById("dash-palette-hexes");
+      hexBox.innerHTML = todayPalette.colors.slice(0, 4).map(c =>
+        `<span class="px-1.5 py-0.5 rounded bg-subtle">${c.hex}</span>`
+      ).join("");
+    }
+
+    /* -----------------------------------------------------------
+       8. 오늘의 미감 미션 뷰 로직
+       ----------------------------------------------------------- */
+    function renderMissionView() {
+      const mission = MISSIONS[activeMissionIndex];
+      const isTodayTarget = activeMissionIndex === todayMissionIndex && !isCustomMissionMode;
+      const isCompletedToday = Boolean(appState.completedDates[todayDateStr]);
+
+      // 배지 업데이트
+      const modeBadge = document.getElementById("mission-badge-mode");
+      const resetBtn = document.getElementById("btn-reset-today-mission");
+      if (isTodayTarget) {
+        modeBadge.textContent = "오늘의 지정 미션";
+        modeBadge.className = "px-3 py-1 rounded-full bg-sage text-white text-xs font-semibold";
+        resetBtn.classList.add("hidden");
+      } else {
+        modeBadge.textContent = "추가 연습 미션";
+        modeBadge.className = "px-3 py-1 rounded-full bg-ink text-white text-xs font-semibold";
+        resetBtn.classList.remove("hidden");
+      }
+
+      document.getElementById("mission-badge-num").textContent = `#${String(mission.id).padStart(2, "0")}`;
+      document.getElementById("mission-badge-cat").textContent = mission.category;
+      document.getElementById("mission-badge-level").textContent = mission.level;
+      document.getElementById("mission-duration").textContent = mission.duration;
+      document.getElementById("mission-title").textContent = mission.title;
+      document.getElementById("mission-intro").textContent = mission.intro;
+      document.getElementById("mission-focus-point").textContent = mission.focus;
+      document.getElementById("mission-explanation").textContent = mission.explanation;
+      document.getElementById("mission-question").textContent = mission.question;
+
+      // 단계별 체크리스트 렌더링
+      const stepsContainer = document.getElementById("mission-steps-list");
+      stepsContainer.innerHTML = mission.steps.map((stepText, idx) => `
+        <label class="check-item flex items-start gap-3 p-3 rounded-xl bg-white border border-[#E3DFD7] cursor-pointer hover:border-sage/50 transition-colors">
+          <input type="checkbox" class="sr-only" ${isTodayTarget && isCompletedToday ? "checked" : ""} />
+          <span class="check-box w-5 h-5 rounded-md border-2 border-[#CFC9BD] flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 transition-colors">✓</span>
+          <span class="check-label text-xs sm:text-sm text-ink leading-relaxed">
+            <strong class="text-sage mr-1">STEP ${idx + 1}.</strong> ${stepText}
+          </span>
+        </label>
+      `).join("");
+
+      // 완료 버튼 및 인사이트 박스 상태
+      const completeBtn = document.getElementById("btn-complete-mission");
+      const completeText = document.getElementById("complete-btn-text");
+      const insightBox = document.getElementById("mission-insight-box");
+
+      // 오늘의 미션일 때는 completedDates 기준, 추가 연습 미션일 때는 세션 완료 또는 아카이브 여부 확인
+      const doneState = isTodayTarget ? isCompletedToday : Boolean(mission._sessionCompleted);
+
+      if (doneState) {
+        completeBtn.className = "px-6 py-3.5 rounded-2xl bg-ink text-white font-bold text-sm sm:text-base transition-all shadow-sm flex items-center justify-center gap-2.5";
+        completeText.textContent = isTodayTarget ? "오늘의 미션 완료됨 (취소하려면 클릭)" : "연습 미션 완료됨 ✓";
+        insightBox.classList.remove("hidden");
+      } else {
+        completeBtn.className = "px-6 py-3.5 rounded-2xl bg-sage text-white font-bold text-sm sm:text-base hover:opacity-95 transition-all shadow-sm flex items-center justify-center gap-2.5";
+        completeText.textContent = isTodayTarget ? "오늘의 미션 완료 체크하기" : "이 미션 완료하고 해설 보기";
+        insightBox.classList.add("hidden");
+      }
+
+      renderAllMissionsDrawer();
+    }
+
+    function toggleMissionComplete() {
+      const mission = MISSIONS[activeMissionIndex];
+      const isTodayTarget = activeMissionIndex === todayMissionIndex && !isCustomMissionMode;
+
+      if (isTodayTarget) {
+        if (appState.completedDates[todayDateStr]) {
+          delete appState.completedDates[todayDateStr];
+          showToast("오늘의 미션 완료 상태가 해제되었습니다.");
+        } else {
+          appState.completedDates[todayDateStr] = {
+            missionId: mission.id,
+            category: mission.category,
+            title: mission.title,
+            completedAt: new Date().toISOString()
+          };
+          showToast("🎉 오늘의 5분 미감 미션을 완료했습니다!");
+        }
+        saveState();
+      } else {
+        mission._sessionCompleted = !mission._sessionCompleted;
+        if (mission._sessionCompleted) {
+          // 추가 미션 완료 시에도 오늘 날짜 기록이 비어있다면 오늘 완료로 함께 반영
+          if (!appState.completedDates[todayDateStr]) {
+            appState.completedDates[todayDateStr] = {
+              missionId: mission.id,
+              category: mission.category,
+              title: mission.title,
+              completedAt: new Date().toISOString()
+            };
+            saveState();
+          }
+          showToast("✨ 연습 미션을 완료하고 디자인 해설을 열었습니다!");
+        }
+      }
+
+      renderMissionView();
+      renderDashboard();
+    }
+
+    function handleMissionFilterChange() {
+      const level = document.getElementById("mission-level-filter").value;
+      if (level === "ALL") {
+        resetToTodayMission();
+        return;
+      }
+      const candidates = MISSIONS.map((m, idx) => ({ m, idx })).filter(item => item.m.level === level);
+      if (candidates.length > 0) {
+        isCustomMissionMode = true;
+        activeMissionIndex = candidates[0].idx;
+        renderMissionView();
+        showToast(`'${level}' 난이도 미션으로 전환했습니다.`);
+      }
+    }
+
+    function pickRandomMission() {
+      const level = document.getElementById("mission-level-filter").value;
+      let pool = MISSIONS.map((m, idx) => ({ m, idx }));
+      if (level !== "ALL") {
+        pool = pool.filter(item => item.m.level === level);
+      }
+      if (pool.length <= 1) return;
+
+      let nextIdx = activeMissionIndex;
+      while (nextIdx === activeMissionIndex) {
+        const picked = pool[Math.floor(Math.random() * pool.length)];
+        nextIdx = picked.idx;
+      }
+      isCustomMissionMode = true;
+      activeMissionIndex = nextIdx;
+      renderMissionView();
+      showToast("🎲 새로운 미감 미션을 뽑았습니다!");
+    }
+
+    function resetToTodayMission() {
+      document.getElementById("mission-level-filter").value = "ALL";
+      isCustomMissionMode = false;
+      activeMissionIndex = todayMissionIndex;
+      renderMissionView();
+      showToast("오늘의 지정 미션으로 돌아왔습니다.");
+    }
+
+    function saveMissionToArchive() {
+      const mission = MISSIONS[activeMissionIndex];
+      const item = {
+        id: "arch_" + Date.now(),
+        type: "미감 미션",
+        tag: `${mission.category} · ${mission.level}`,
+        title: `#${String(mission.id).padStart(2, "0")} ${mission.title}`,
+        content: `${mission.focus} — ${mission.explanation}`,
+        date: todayDateStr
+      };
+      appState.archive.unshift(item);
+      saveState();
+      renderDashboard();
+      showToast("🔖 미션 인사이트가 아카이브에 저장되었습니다.");
+    }
+
+    function saveMissionReflection() {
+      const input = document.getElementById("mission-reflection-input");
+      const text = input.value.trim();
+      if (!text) {
+        showToast("감상이나 발견한 원칙을 한 줄 적어주세요.", "error");
+        return;
+      }
+      const mission = MISSIONS[activeMissionIndex];
+      appState.archive.unshift({
+        id: "arch_" + Date.now(),
+        type: "나의 메모",
+        tag: `미션 #${mission.id} 감상`,
+        title: mission.title,
+        content: text,
+        date: todayDateStr
+      });
+      saveState();
+      input.value = "";
+      renderDashboard();
+      showToast("✍️ 나만의 디자인 메모가 아카이브에 저장되었습니다!");
+    }
+
+    function toggleAllMissionsDrawer() {
+      const list = document.getElementById("all-missions-list");
+      const arrow = document.getElementById("drawer-arrow");
+      const isHidden = list.classList.contains("hidden");
+      list.classList.toggle("hidden", !isHidden);
+      arrow.textContent = isHidden ? "접기 ▲" : "펼치기 ▼";
+    }
+
+    function renderAllMissionsDrawer() {
+      const list = document.getElementById("all-missions-list");
+      list.innerHTML = MISSIONS.map((m, idx) => `
+        <button onclick="selectSpecificMission(${idx})" class="p-3.5 rounded-xl border text-left transition-all flex items-start justify-between gap-2 ${idx === activeMissionIndex ? "bg-sageLight/60 border-sage" : "bg-[#FAF9F6] border-[#E3DFD7] hover:border-ink"}">
+          <div>
+            <div class="flex items-center gap-1.5 text-[11px] font-semibold text-muted mb-1">
+              <span class="font-mono text-ink">#${String(m.id).padStart(2, "0")}</span>
+              <span>•</span>
+              <span class="text-sage">${m.category}</span>
+              <span>•</span>
+              <span>${m.level}</span>
+            </div>
+            <div class="text-xs sm:text-sm font-bold text-ink line-clamp-1">${m.title}</div>
+          </div>
+          <span class="text-xs text-muted shrink-0">→</span>
+        </button>
+      `).join("");
+    }
+
+    function selectSpecificMission(idx) {
+      isCustomMissionMode = idx !== todayMissionIndex;
+      activeMissionIndex = idx;
+      renderMissionView();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    /* -----------------------------------------------------------
+       9. 디자인 안목 테스트 뷰 로직
+       ----------------------------------------------------------- */
+    function filterQuizzes() {
+      const cat = document.getElementById("quiz-category-filter").value;
+      filteredQuizList = cat === "ALL" ? [...QUIZZES] : QUIZZES.filter(q => q.category === cat);
+      currentQuizIndex = 0;
+      renderQuizView();
+    }
+
+    function renderQuizView() {
+      if (filteredQuizList.length === 0) return;
+      const quiz = filteredQuizList[currentQuizIndex];
+      const userChoice = appState.quizAnswers[quiz.id] || null;
+
+      document.getElementById("quiz-progress-badge").textContent = `${currentQuizIndex + 1} / ${filteredQuizList.length}`;
+      document.getElementById("quiz-cat-tag").textContent = quiz.category;
+      document.getElementById("quiz-principle-tag").textContent = `관찰 키워드: ${quiz.principle}`;
+      document.getElementById("quiz-question").textContent = quiz.question;
+
+      // A / B 카드 콘텐츠
+      document.getElementById("quiz-label-A").textContent = quiz.labelA;
+      document.getElementById("quiz-visual-A").innerHTML = quiz.visualA;
+      document.getElementById("quiz-caption-A").textContent = quiz.captionA;
+
+      document.getElementById("quiz-label-B").textContent = quiz.labelB;
+      document.getElementById("quiz-visual-B").innerHTML = quiz.visualB;
+      document.getElementById("quiz-caption-B").textContent = quiz.captionB;
+
+      // 선택 스타일 초기화 및 반영
+      const cardA = document.getElementById("quiz-card-A");
+      const cardB = document.getElementById("quiz-card-B");
+      cardA.classList.remove("quiz-option-selected");
+      cardB.classList.remove("quiz-option-selected");
+
+      const expPanel = document.getElementById("quiz-explanation-panel");
+      if (userChoice) {
+        if (userChoice === "A") cardA.classList.add("quiz-option-selected");
+        if (userChoice === "B") cardB.classList.add("quiz-option-selected");
+
+        expPanel.classList.remove("hidden");
+        document.getElementById("quiz-result-badge").textContent = `나의 선택: ${userChoice}안`;
+        document.getElementById("quiz-recommended-note").textContent = `디자인 관점 제안: ${quiz.recommended}안 (${quiz.recommended === "A" ? quiz.labelA : quiz.labelB})`;
+        document.getElementById("quiz-explanation-text").textContent = quiz.explanation;
+        document.getElementById("quiz-principle-detail").textContent = quiz.principleDetail;
+      } else {
+        expPanel.classList.add("hidden");
+      }
+    }
+
+    function selectQuizOption(choice) {
+      const quiz = filteredQuizList[currentQuizIndex];
+      appState.quizAnswers[quiz.id] = choice;
+      saveState();
+      renderQuizView();
+    }
+
+    function resetCurrentQuiz() {
+      const quiz = filteredQuizList[currentQuizIndex];
+      delete appState.quizAnswers[quiz.id];
+      saveState();
+      renderQuizView();
+    }
+
+    function nextQuiz() {
+      currentQuizIndex = (currentQuizIndex + 1) % filteredQuizList.length;
+      renderQuizView();
+    }
+
+    function prevQuiz() {
+      currentQuizIndex = (currentQuizIndex - 1 + filteredQuizList.length) % filteredQuizList.length;
+      renderQuizView();
+    }
+
+    function saveQuizToArchive() {
+      const quiz = filteredQuizList[currentQuizIndex];
+      appState.archive.unshift({
+        id: "arch_" + Date.now(),
+        type: "안목 테스트",
+        tag: `${quiz.category} · ${quiz.principle}`,
+        title: quiz.question,
+        content: `[디자인 원칙] ${quiz.principleDetail} — ${quiz.explanation}`,
+        date: todayDateStr
+      });
+      saveState();
+      renderDashboard();
+      showToast("🔖 디자인 비교 인사이트가 아카이브에 저장되었습니다.");
+    }
+
+    /* -----------------------------------------------------------
+       10. 오늘의 컬러 연구소 뷰 로직
+       ----------------------------------------------------------- */
+    function initPaletteSelector() {
+      const sel = document.getElementById("palette-selector");
+      sel.innerHTML = PALETTES.map((p, idx) =>
+        `<option value="${idx}">${idx === todayPaletteIndex ? "★ [오늘] " : ""}${p.name}</option>`
+      ).join("");
+      sel.value = String(activePaletteIndex);
+    }
+
+    function selectPaletteByIndex(idxStr) {
+      activePaletteIndex = parseInt(idxStr, 10) || 0;
+      renderColorLab();
+    }
+
+    function renderColorLab() {
+      const palette = PALETTES[activePaletteIndex];
+      const badge = document.getElementById("color-lab-badge");
+      badge.textContent = activePaletteIndex === todayPaletteIndex ? "TODAY'S PALETTE" : `CURATED #${String(palette.id).padStart(2, "0")}`;
+
+      document.getElementById("color-lab-tags").innerHTML = palette.moods.map(m =>
+        `<span class="px-2 py-0.5 rounded bg-subtle text-muted">${m}</span>`
+      ).join("");
+      document.getElementById("color-lab-title").textContent = palette.name;
+
+      // 인터랙티브 컬러 스와치 타일
+      const swatchesEl = document.getElementById("color-lab-swatches");
+      swatchesEl.innerHTML = palette.colors.map(c => {
+        const textColor = isLightColor(c.hex) ? "#1F211E" : "#FFFFFF";
+        return `
+          <button onclick="copyTextToClipboard('${c.hex}', '색상 코드 ${c.hex} (${c.name}) 복사됨!')"
+            class="swatch-tile flex-1 p-4 flex sm:flex-col justify-between items-center sm:items-start text-left cursor-pointer focus:outline-none group"
+            style="background-color: ${c.hex}; color: ${textColor};">
+            <span class="text-xs font-medium opacity-85">${c.name}</span>
+            <div class="flex items-center gap-1.5">
+              <span class="font-mono text-sm sm:text-base font-bold tracking-wide">${c.hex}</span>
+              <span class="text-[10px] px-1.5 py-0.5 rounded bg-black/10 opacity-80 group-hover:opacity-100">복사</span>
+            </div>
+          </button>
+        `;
+      }).join("");
+
+      // 역할 설명 리스트
+      const rolesEl = document.getElementById("color-lab-roles");
+      rolesEl.innerHTML = palette.colors.map(c => `
+        <div class="flex items-center gap-3 p-2.5 rounded-xl bg-[#FAF9F6] border border-[#E3DFD7]">
+          <button onclick="copyTextToClipboard('${c.hex}', '${c.hex} 복사 완료!')" class="w-9 h-9 rounded-lg border border-black/10 shrink-0 shadow-2xs cursor-pointer" style="background-color: ${c.hex};" title="클릭하여 HEX 복사"></button>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-ink">${c.name}</span>
+              <span class="text-[11px] font-mono text-muted">${c.hex}</span>
+            </div>
+            <p class="text-xs text-muted truncate sm:whitespace-normal">${c.role}</p>
+          </div>
+        </div>
+      `).join("");
+
+      // 활용 아이디어 & 실시간 UI 미리보기 적용
+      document.getElementById("color-lab-usage").textContent = palette.usage;
+
+      const bgCol = palette.colors[0].hex;
+      const borderCol = palette.colors[1].hex;
+      const keyCol = palette.colors[2].hex;
+      const accentCol = palette.colors[3].hex;
+      const textCol = palette.colors[4] ? palette.colors[4].hex : keyCol;
+
+      const previewBox = document.getElementById("color-lab-live-preview");
+      previewBox.style.backgroundColor = bgCol;
+      previewBox.style.borderColor = borderCol;
+      previewBox.style.color = textCol;
+
+      const previewBtn = document.getElementById("color-lab-preview-btn");
+      previewBtn.style.backgroundColor = accentCol;
+      previewBtn.style.color = isLightColor(accentCol) ? "#1F211E" : "#FFFFFF";
+    }
+
+    // 밝기 판별 유틸리티 (텍스트 대비 자동 결정)
+    function isLightColor(hex) {
+      const clean = hex.replace("#", "");
+      const r = parseInt(clean.substring(0, 2), 16);
+      const g = parseInt(clean.substring(2, 4), 16);
+      const b = parseInt(clean.substring(4, 6), 16);
+      const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      return luminance > 0.62;
+    }
+
+    function saveCurrentPaletteToArchive() {
+      const palette = PALETTES[activePaletteIndex];
+      appState.archive.unshift({
+        id: "arch_" + Date.now(),
+        type: "컬러 팔레트",
+        tag: palette.moods.join(" "),
+        title: palette.name,
+        content: palette.desc,
+        colors: palette.colors.map(c => c.hex),
+        date: todayDateStr
+      });
+      saveState();
+      renderDashboard();
+      showToast(`🎨 '${palette.name}' 팔레트를 아카이브에 저장했습니다!`);
+    }
+
+    function toggleCustomPaletteBuilder() {
+      const builder = document.getElementById("custom-palette-builder");
+      builder.classList.toggle("hidden");
+    }
+
+    function updateCustomPreview() {
+      for (let i = 1; i <= 4; i++) {
+        const val = document.getElementById(`custom-c${i}`).value.toUpperCase();
+        document.getElementById(`custom-hex${i}`).textContent = val;
+      }
+    }
+
+    function saveCustomPalette() {
+      const nameInput = document.getElementById("custom-palette-name");
+      const noteInput = document.getElementById("custom-palette-note");
+      const name = nameInput.value.trim() || "나만의 커스텀 배색";
+      const note = noteInput.value.trim() || "직접 조합하여 보관한 커스텀 컬러 팔레트입니다.";
+      const colors = [
+        document.getElementById("custom-c1").value.toUpperCase(),
+        document.getElementById("custom-c2").value.toUpperCase(),
+        document.getElementById("custom-c3").value.toUpperCase(),
+        document.getElementById("custom-c4").value.toUpperCase()
+      ];
+
+      appState.archive.unshift({
+        id: "arch_" + Date.now(),
+        type: "컬러 팔레트",
+        tag: "#커스텀팔레트 #직접조합",
+        title: name,
+        content: note,
+        colors,
+        date: todayDateStr
+      });
+      saveState();
+      nameInput.value = "";
+      noteInput.value = "";
+      toggleCustomPaletteBuilder();
+      renderDashboard();
+      showToast(`✨ 커스텀 팔레트 '${name}'가 아카이브에 저장되었습니다!`);
+    }
+
+    /* -----------------------------------------------------------
+       11. 나의 취향 아카이브 뷰 로직
+       ----------------------------------------------------------- */
+    function setArchiveFilter(category) {
+      archiveFilter = category;
+      document.querySelectorAll(".arch-filter-btn").forEach(btn => {
+        const isSelected = btn.dataset.archFilter === category;
+        btn.className = isSelected
+          ? "arch-filter-btn px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-semibold bg-ink text-white"
+          : "arch-filter-btn px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-medium bg-white border border-[#E3DFD7] text-muted hover:text-ink";
+      });
+      renderArchive();
+    }
+
+    function addCustomMemo() {
+      const type = document.getElementById("new-memo-type").value;
+      const titleInput = document.getElementById("new-memo-title");
+      const contentInput = document.getElementById("new-memo-content");
+      const title = titleInput.value.trim();
+      const content = contentInput.value.trim();
+
+      if (!title && !content) {
+        showToast("메모 제목이나 내용을 입력해주세요.", "error");
+        return;
+      }
+
+      appState.archive.unshift({
+        id: "arch_" + Date.now(),
+        type: "나의 메모",
+        tag: type,
+        title: title || "일상 미감 메모",
+        content: content || title,
+        date: todayDateStr
+      });
+      saveState();
+      titleInput.value = "";
+      contentInput.value = "";
+      renderArchive();
+      renderDashboard();
+      showToast("📝 아카이브에 새로운 기록을 추가했습니다.");
+    }
+
+    function editArchiveMemo(id) {
+      const item = appState.archive.find(entry => entry.id === id && entry.type === "나의 메모");
+      if (!item) return;
+
+      const updatedTitle = window.prompt("메모 제목을 수정하세요.", item.title || "");
+      if (updatedTitle === null) return;
+
+      const updatedContent = window.prompt("메모 내용을 수정하세요.", item.content || "");
+      if (updatedContent === null) return;
+
+      const title = updatedTitle.trim();
+      const content = updatedContent.trim();
+
+      if (!title && !content) {
+        showToast("메모 제목이나 내용 중 하나는 입력해주세요.", "error");
+        return;
+      }
+
+      item.title = title || "일상 미감 메모";
+      item.content = content || title;
+      saveState();
+      renderArchive();
+      renderDashboard();
+      showToast("📝 메모가 수정되었습니다.");
+    }
+
+    function deleteArchiveItem(id) {
+      appState.archive = appState.archive.filter(item => item.id !== id);
+      saveState();
+      renderArchive();
+      renderDashboard();
+      showToast("선택한 항목을 아카이브에서 삭제했습니다.");
+    }
+
+    function renderArchive() {
+      const grid = document.getElementById("archive-grid");
+      const emptyState = document.getElementById("archive-empty-state");
+      const keyword = (document.getElementById("archive-search-input")?.value || "").trim().toLowerCase();
+
+      const filtered = appState.archive.filter(item => {
+        const matchCat = archiveFilter === "ALL" || item.type === archiveFilter;
+        const matchSearch = !keyword ||
+          (item.title && item.title.toLowerCase().includes(keyword)) ||
+          (item.content && item.content.toLowerCase().includes(keyword)) ||
+          (item.tag && item.tag.toLowerCase().includes(keyword));
+        return matchCat && matchSearch;
+      });
+
+      if (filtered.length === 0) {
+        grid.innerHTML = "";
+        emptyState.classList.remove("hidden");
+        return;
+      }
+
+      emptyState.classList.add("hidden");
+      grid.innerHTML = filtered.map(item => {
+        const hasColors = Array.isArray(item.colors) && item.colors.length > 0;
+        const swatchesHtml = hasColors ? `
+          <div class="mt-3 pt-3 border-t border-[#EFECE6] space-y-2">
+            <div class="h-10 rounded-xl overflow-hidden flex border border-[#E3DFD7]">
+              ${item.colors.map(hex => `<div class="flex-1 h-full" style="background-color:${hex};"></div>`).join("")}
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              ${item.colors.map(hex => `<button onclick="copyTextToClipboard('${hex}', '${hex} 복사됨!')" class="px-2 py-0.5 rounded bg-subtle hover:bg-ink hover:text-white text-[11px] font-mono text-ink transition-colors">${hex}</button>`).join("")}
+            </div>
+          </div>
+        ` : "";
+
+        return `
+          <article class="studio-card p-5 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between gap-2 mb-2">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="px-2.5 py-0.5 rounded-md bg-sageLight text-sage text-[11px] font-semibold">${item.type}</span>
+                  ${item.tag ? `<span class="text-[11px] text-muted">${item.tag}</span>` : ""}
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-[11px] font-mono text-muted">${item.date}</span>
+                  ${item.type === "나의 메모" ? `<button onclick="editArchiveMemo('${item.id}')" title="수정" class="text-xs text-sage hover:text-ink px-1.5 py-0.5 rounded">수정</button>` : ""}
+                  <button onclick="deleteArchiveItem('${item.id}')" title="삭제" class="text-xs text-muted hover:text-terracotta px-1.5 py-0.5 rounded">✕</button>
+                </div>
+              </div>
+              <h4 class="font-bold text-base text-ink mb-1.5">${item.title}</h4>
+              <p class="text-xs sm:text-sm text-muted leading-relaxed">${item.content}</p>
+            </div>
+            ${swatchesHtml}
+          </article>
+        `;
+      }).join("");
+    }
+
+    function copyArchiveAsText() {
+      if (appState.archive.length === 0) {
+        showToast("복사할 아카이브 기록이 없습니다.", "error");
+        return;
+      }
+      const lines = appState.archive.map((item, i) => {
+        const colorLine = item.colors ? `\n   색상코드: ${item.colors.join(", ")}` : "";
+        return `${i + 1}. [${item.type}] ${item.title} (${item.date})\n   ${item.content}${colorLine}`;
+      });
+      const fullText = `🌱 MOOD DAILY. 나의 취향 아카이브 (${todayDateStr})\n========================================\n\n` + lines.join("\n\n");
+      copyTextToClipboard(fullText, "전체 아카이브 내용이 텍스트로 복사되었습니다!");
+    }
+
+    function exportArchiveFile(format) {
+      if (appState.archive.length === 0 && Object.keys(appState.completedDates).length === 0) {
+        showToast("내보낼 활동 기록이 아직 없습니다.", "error");
+        return;
+      }
+      let content = "";
+      let mime = "text/plain;charset=utf-8";
+      let ext = "txt";
+
+      if (format === "json") {
+        content = JSON.stringify({
+          exportedAt: new Date().toISOString(),
+          service: "MOOD DAILY.",
+          data: appState
+        }, null, 2);
+        mime = "application/json;charset=utf-8";
+        ext = "json";
+      } else {
+        const archLines = appState.archive.map((item, i) =>
+          `${i + 1}. [${item.type}] ${item.title} (${item.date})\n   - ${item.content}${item.colors ? `\n   - HEX: ${item.colors.join(", ")}` : ""}`
+        ).join("\n\n");
+        content = `MOOD DAILY. 활동 및 취향 아카이브 백업 (${todayDateStr})\n총 완료 미션 일수: ${Object.keys(appState.completedDates).length}일\n\n[저장된 아카이브 항목]\n${archLines || "저장된 항목 없음"}`;
+      }
+
+      const blob = new Blob([content], { type: mime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `mood-daily-archive-${todayDateStr}.${ext}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast(`⬇️ ${ext.toUpperCase()} 백업 파일이 다운로드되었습니다.`);
+    }
+
+    /* -----------------------------------------------------------
+       12. 주간 미감 리포트 뷰 로직
+       ----------------------------------------------------------- */
+    function renderReport() {
+      const weekDates = getThisWeekDates();
+      const weekDateSet = new Set(weekDates.map(d => d.dateStr));
+      const weekDoneDays = weekDates.filter(d => d.completed).length;
+      const streak = calculateStreak();
+      const allCompletedEntries = Object.values(appState.completedDates);
+      const totalCompletedCount = allCompletedEntries.length;
+
+      // 이번 주 저장된 아카이브 수
+      const weekSavedCount = appState.archive.filter(item => weekDateSet.has(item.date)).length;
+
+      document.getElementById("rep-week-days").textContent = weekDoneDays;
+      document.getElementById("rep-streak").textContent = streak;
+      document.getElementById("rep-total-missions").textContent = totalCompletedCount;
+      document.getElementById("rep-week-missions-sub").textContent = `이번 주 완료 ${weekDoneDays}일`;
+      document.getElementById("rep-week-saved").textContent = weekSavedCount;
+      document.getElementById("rep-total-saved-sub").textContent = `전체 보관함 ${appState.archive.length}건`;
+
+      // 이번 주 7일 캘린더 렌더링
+      const calEl = document.getElementById("rep-week-calendar");
+      calEl.innerHTML = weekDates.map(d => {
+        let circleClass = "bg-[#F7F5F0] border-[#E3DFD7] text-muted";
+        if (d.completed) {
+          circleClass = "bg-sage border-sage text-white font-bold shadow-xs";
+        } else if (d.isToday) {
+          circleClass = "bg-white border-2 border-terracotta text-terracotta font-bold";
+        }
+        return `
+          <div class="flex flex-col items-center gap-1.5">
+            <span class="text-[11px] font-medium ${d.isToday ? "text-terracotta font-bold" : "text-muted"}">${d.label}</span>
+            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-full border flex items-center justify-center text-xs ${circleClass}">
+              ${d.completed ? "✓" : d.dayNum}
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      // 6대 분야별 수행 횟수 계산
+      const categories = ["컬러 감각", "폰트 감각", "레이아웃 감각", "이미지 감각", "디자인 분석", "창작 연습"];
+      const counts = {};
+      categories.forEach(c => counts[c] = 0);
+      allCompletedEntries.forEach(entry => {
+        if (counts[entry.category] !== undefined) {
+          counts[entry.category]++;
+        }
+      });
+
+      const maxCount = Math.max(1, ...Object.values(counts));
+      const barsEl = document.getElementById("rep-category-bars");
+      barsEl.innerHTML = categories.map(cat => {
+        const cnt = counts[cat];
+        const pct = Math.round((cnt / maxCount) * 100);
+        return `
+          <div class="space-y-1">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-semibold text-ink">${cat}</span>
+              <span class="font-mono text-muted">${cnt}회</span>
+            </div>
+            <div class="w-full h-2.5 rounded-full bg-[#EFECE6] overflow-hidden">
+              <div class="h-full rounded-full bg-sage transition-all duration-500" style="width: ${cnt === 0 ? 0 : Math.max(8, pct)}%;"></div>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      // 규칙 기반 다음 연습 분야 제안
+      let leastCat = categories[0];
+      let minVal = counts[categories[0]];
+      categories.forEach(cat => {
+        if (counts[cat] < minVal) {
+          minVal = counts[cat];
+          leastCat = cat;
+        }
+      });
+
+      const recTips = {
+        "컬러 감각": "다음에는 [컬러 감각] 미션을 통해 60:30:10 배색 비율과 명도 대비를 관찰해 보세요.",
+        "폰트 감각": "글자의 크기와 행간만 다듬어도 인상이 달라집니다. 다음에는 [폰트 감각] 미션을 추천합니다.",
+        "레이아웃 감각": "여백과 정렬 축을 다루는 [레이아웃 감각] 미션을 연습하면 화면 정돈 능력이 크게 자랍니다.",
+        "이미지 감각": "빛의 방향과 3분할 구도를 살피는 [이미지 감각] 미션으로 시각적 깊이를 더해보세요.",
+        "디자인 분석": "일상 속 앱과 패키지의 의도를 읽어내는 [디자인 분석] 미션으로 기획 안목을 넓혀보세요.",
+        "창작 연습": "직접 팔레트를 조합하고 문장을 다듬는 [창작 연습] 미션으로 배운 감각을 표현해보세요."
+      };
+
+      const recText = totalCompletedCount === 0
+        ? "아직 완료한 미션 기록이 없습니다. 오늘의 미션 하나를 완료하면 나만의 주간 리포트가 채워집니다!"
+        : `현재 '${leastCat}' 분야의 연습 빈도가 가장 적습니다(${minVal}회). ${recTips[leastCat]}`;
+      document.getElementById("rep-recommendation-text").textContent = recText;
+
+      updateSampleButtonUI();
+    }
+
+    // 샘플 데이터 존재 여부 확인 및 버튼 UI 동기화
+    function hasSampleData() {
+      const hasSampleMission = Object.values(appState.completedDates).some(entry => entry && entry.isSample === true);
+      const hasSampleArchive = appState.archive.some(item => item && item.isSample === true);
+      return hasSampleMission || hasSampleArchive;
+    }
+
+    function updateSampleButtonUI() {
+      const btn = document.getElementById("btn-toggle-sample");
+      if (!btn) return;
+      if (hasSampleData()) {
+        btn.textContent = "샘플 기록 비우기";
+        btn.className = "px-3 py-2 rounded-xl bg-sageLight border border-sage/40 text-xs font-semibold text-sage hover:bg-sage hover:text-white transition-colors";
+      } else {
+        btn.textContent = "샘플 기록 채우기";
+        btn.className = "px-3 py-2 rounded-xl bg-white border border-[#E3DFD7] hover:border-sage text-xs font-medium text-muted hover:text-ink transition-colors";
+      }
+    }
+
+    // 검증 및 체험용 샘플 데이터 토글 (채우기 / 비우기)
+    function toggleDemoData() {
+      if (hasSampleData()) {
+        // isSample: true 플래그가 있는 항목만 제거하고 실제 사용자 기록은 보존
+        Object.keys(appState.completedDates).forEach(dateKey => {
+          if (appState.completedDates[dateKey] && appState.completedDates[dateKey].isSample === true) {
+            delete appState.completedDates[dateKey];
+          }
+        });
+        appState.archive = appState.archive.filter(item => !item.isSample);
+
+        saveState();
+        renderReport();
+        renderDashboard();
+        renderArchive();
+        showToast("🧹 샘플 기록만 비우고 실제 사용자 기록은 유지했습니다.");
+        return;
+      }
+
+      const now = new Date();
+      for (let i = 1; i <= 3; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+        const key = getLocalDateString(d);
+        // 사용자가 해당 날짜에 직접 완료한 기록이 없을 때만 샘플 추가
+        if (!appState.completedDates[key]) {
+          const m = MISSIONS[(todayMissionIndex - i + MISSIONS.length) % MISSIONS.length];
+          appState.completedDates[key] = {
+            missionId: m.id,
+            category: m.category,
+            title: m.title,
+            completedAt: d.toISOString(),
+            isSample: true
+          };
+        }
+      }
+
+      const samplePal = PALETTES[todayPaletteIndex];
+      const sampleQuiz = QUIZZES[0];
+      appState.archive.unshift(
+        {
+          id: "arch_demo_1_" + Date.now(),
+          type: "컬러 팔레트",
+          tag: `[샘플] ${samplePal.moods.join(" ")}`,
+          title: samplePal.name,
+          content: samplePal.desc,
+          colors: samplePal.colors.map(c => c.hex),
+          date: todayDateStr,
+          isSample: true
+        },
+        {
+          id: "arch_demo_2_" + Date.now(),
+          type: "안목 테스트",
+          tag: `[샘플] ${sampleQuiz.category} · ${sampleQuiz.principle}`,
+          title: sampleQuiz.question,
+          content: `[디자인 원칙] ${sampleQuiz.principleDetail} — ${sampleQuiz.explanation}`,
+          date: todayDateStr,
+          isSample: true
+        },
+        {
+          id: "arch_demo_3_" + Date.now(),
+          type: "나의 메모",
+          tag: "[샘플] 디자인 팁",
+          title: "여백과 행간의 힘",
+          content: "본문 줄간격을 1.65로 넓히고 카드 패딩을 넉넉히 주면 같은 텍스트도 훨씬 에디토리얼하게 읽힌다.",
+          date: todayDateStr,
+          isSample: true
+        }
+      );
+
+      saveState();
+      renderReport();
+      renderDashboard();
+      renderArchive();
+      showToast("🌱 샘플 기록을 채웠습니다. 다시 누르면 샘플만 비워집니다.");
+    }
+
+    function openResetModal() {
+      document.getElementById("confirm-modal").classList.remove("hidden");
+    }
+
+    function closeResetModal() {
+      document.getElementById("confirm-modal").classList.add("hidden");
+    }
+
+    function executeResetData() {
+      appState = {
+        completedDates: {},
+        archive: [],
+        quizAnswers: {}
+      };
+      MISSIONS.forEach(m => { delete m._sessionCompleted; });
+      saveState();
+      closeResetModal();
+      renderReport();
+      renderDashboard();
+      renderArchive();
+      showToast("모든 활동 기록이 초기화되었습니다.");
+    }
+
+    /* -----------------------------------------------------------
+       13. 앱 초기화 (window.onload)
+       ----------------------------------------------------------- */
+    window.addEventListener("DOMContentLoaded", () => {
+      const now = new Date();
+      todayDateStr = getLocalDateString(now);
+      const dayEpoch = getDayEpochIndex(now);
+
+      // 날짜 기준 결정론적 오늘의 미션 및 컬러 팔레트 선정
+      todayMissionIndex = dayEpoch % MISSIONS.length;
+      activeMissionIndex = todayMissionIndex;
+
+      todayPaletteIndex = dayEpoch % PALETTES.length;
+      activePaletteIndex = todayPaletteIndex;
+
+      loadState();
+      initPaletteSelector();
+      switchTab("dashboard");
+    });
+  </script>
+</body>
+</html>
